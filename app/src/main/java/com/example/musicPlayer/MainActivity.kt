@@ -13,21 +13,24 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.ArrayList
 import android.media.MediaMetadataRetriever
-import android.widget.LinearLayout
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.content.IntentFilter
+import androidx.cardview.widget.CardView
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import android.view.View
+import android.widget.LinearLayout
 
 class MainActivity : ComponentActivity() {
     private lateinit var recyclerView: RecyclerView
     lateinit var musicAdapter: MusicAdapter
     private var uri : Uri? = null
     private var audioFiles : ArrayList<AudioFile> = ArrayList()
-    private lateinit var musicButtonLinearLayout: LinearLayout
+    private lateinit var musicControlCardView: CardView
+    private lateinit var musicControlLinearLayout: LinearLayout
 
     private lateinit var musicController: MusicController
 
@@ -40,8 +43,9 @@ class MainActivity : ComponentActivity() {
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        musicButtonLinearLayout = findViewById(R.id.musicButtonLinearLayout)
-        musicButtonLinearLayout.setOnClickListener {
+        musicControlCardView = findViewById(R.id.musicControlCardView)
+        musicControlLinearLayout = findViewById(R.id.musicButtonLinearLayout)
+        musicControlLinearLayout.setOnClickListener {
             val intent = Intent(this, MusicActivity::class.java)
             intent.putParcelableArrayListExtra("audioFiles", audioFiles)
             startActivity(intent)
@@ -53,6 +57,7 @@ class MainActivity : ComponentActivity() {
             musicController.playAudio(audioFiles, index)
             // Mettre à jour l'ID de la musique actuellement jouée
             musicAdapter.setSelectedAudioId(audioFile.id, index)
+            toggleCardViewVisibility(true)
         }
         recyclerView.adapter = musicAdapter
 
@@ -61,9 +66,11 @@ class MainActivity : ComponentActivity() {
                 for (audio in musicController.musicService?.audioFiles?:ArrayList()) {
                     audioFiles.add(audio)
                 }
+                toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
             }
         } else {
             musicController = MusicController(this) {}
+            toggleCardViewVisibility(false)
             setURI { uri ->
                 if (uri != null) {
                     this.uri = uri
@@ -163,6 +170,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Fonction pour afficher ou masquer le CardView
+    private fun toggleCardViewVisibility(show: Boolean) {
+        if (show) {
+            musicControlCardView.visibility = View.VISIBLE  // Afficher le CardView
+        } else {
+            musicControlCardView.visibility = View.GONE  // Masquer le CardView
+        }
+    }
 
     override fun onDestroy() {
         super.onDestroy()

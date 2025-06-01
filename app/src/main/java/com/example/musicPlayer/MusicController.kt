@@ -26,6 +26,7 @@ class MusicController (private var activity: ComponentActivity, private val onMu
     private var nextButton: ImageButton = activity.findViewById(R.id.btnNext)
     private var textCurrentTime: TextView = activity.findViewById(R.id.textCurrentTime)
     private var textTotalTime: TextView = activity.findViewById(R.id.textTotalDuration)
+    private var textCardTitle: TextView = activity.findViewById(R.id.cardMusicTitle)
 
     var musicServiceIntent: Intent? = null
     var musicService: MusicService? = null
@@ -118,10 +119,21 @@ class MusicController (private var activity: ComponentActivity, private val onMu
         textTotalTime.text = formatTime(musicService?.mediaPlayer?.duration?:0)
     }
 
+    private fun updateTextTitle() {
+        if (musicService?.currentAudioIndex != null) {
+            val index = musicService?.currentAudioIndex!!
+            val audioFiles = musicService?.audioFiles
+            if (audioFiles != null && index >= 0 && index < audioFiles.size) {
+                textCardTitle.text = audioFiles[index].title
+            }
+        }
+    }
+
     fun update() {
         updatePlayButton()
         updateSeekBar()
         updateTextDuration()
+        updateTextTitle()
     }
 
     private fun startMusic() {

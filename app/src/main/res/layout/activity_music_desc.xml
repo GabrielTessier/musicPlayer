@@ -63,7 +63,7 @@
     <!-- Footer -->
     <include
         android:id="@+id/footer"
-        layout="@layout/footer"
+        layout="@layout/music_button_control"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
