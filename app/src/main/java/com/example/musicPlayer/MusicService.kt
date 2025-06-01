@@ -261,6 +261,7 @@ class MusicService : Service() {
             it.release()
         }
         mediaPlayer = null
+        mediaSession.release()
         handler.removeCallbacksAndMessages(null)
     }
 }

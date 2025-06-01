@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
 
-class MusicAdapter(private var audioFiles: List<AudioFile>, private val onItemClick: (AudioFile) -> Unit) : RecyclerView.Adapter<MusicAdapter.MusicViewHolder>() {
+class MusicAdapter(private val onItemClick: (AudioFile) -> Unit) : RecyclerView.Adapter<MusicAdapter.MusicViewHolder>() {
 
     private var selectedAudioId: Long? = null
 
@@ -29,7 +29,7 @@ class MusicAdapter(private var audioFiles: List<AudioFile>, private val onItemCl
     }
 
     override fun onBindViewHolder(holder: MusicViewHolder, position: Int) {
-        val audioFile = audioFiles[position]
+        val audioFile = mainActivity.audioFiles[position]
         holder.title.text = audioFile.title
         holder.artist.text = audioFile.artist
         holder.duration.text = formatDuration(audioFile.duration)
@@ -48,7 +48,7 @@ class MusicAdapter(private var audioFiles: List<AudioFile>, private val onItemCl
         }
     }
 
-    override fun getItemCount(): Int = audioFiles.size
+    override fun getItemCount(): Int = mainActivity.audioFiles.size
 
     private fun formatDuration(duration: Long): String {
         val minutes = (duration / 1000) / 60
@@ -57,7 +57,7 @@ class MusicAdapter(private var audioFiles: List<AudioFile>, private val onItemCl
     }
 
     fun setSelectedAudioId(audioId: Long, index: Int) {
-        val indexOld = audioFiles.indexOfFirst { it.id == selectedAudioId }
+        val indexOld = mainActivity.audioFiles.indexOfFirst { it.id == selectedAudioId }
         notifyItemChanged(indexOld)
         selectedAudioId = audioId
         // Met à jour l'apparence de la musique à jouer

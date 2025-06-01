@@ -13,6 +13,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import java.util.ArrayList
 import android.media.MediaMetadataRetriever
 import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 lateinit var mainActivity: MainActivity
 
@@ -21,7 +25,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var recyclerView: RecyclerView
     lateinit var musicAdapter: MusicAdapter
     private var uri : Uri? = null
-    private var audioFiles : ArrayList<AudioFile> = ArrayList()
+    var audioFiles : ArrayList<AudioFile> = ArrayList()
+
+    private var musicServiceIntent: Intent? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,21 +38,34 @@ class MainActivity : ComponentActivity() {
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        val context = this
+        musicAdapter = MusicAdapter { audioFile ->
+            // Gérer la lecture de l'audio ici
+            val index = audioFiles.indexOfFirst { it.id == audioFile.id }
+            playAudio(audioFiles, index)
+            // Mettre à jour l'ID de la musique actuellement jouée
+            musicAdapter.setSelectedAudioId(audioFile.id, index)
+        }
+        recyclerView.adapter = musicAdapter
 
         setURI { uri ->
             if (uri != null) {
                 this.uri = uri
+                // ⚡ Lancer l’analyse en arrière-plan
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        scanAudioFiles(this@MainActivity, uri) { audioFile ->
+                            withContext(Dispatchers.Main) {
+                                val position = audioFiles.size
+                                audioFiles.add(audioFile)
+                                musicAdapter.notifyItemInserted(position)
 
-                setAudioFiles(context, uri)
-                musicAdapter = MusicAdapter(audioFiles) { audioFile ->
-                    // Gérer la lecture de l'audio ici
-                    val index = audioFiles.indexOfFirst { it.id == audioFile.id }
-                    playAudio(audioFiles, index)
-                    // Mettre à jour l'ID de la musique actuellement jouée
-                    musicAdapter.setSelectedAudioId(audioFile.id, index)
+                                recyclerView.post {
+                                    recyclerView.invalidateItemDecorations()
+                                }
+                            }
+                        }
+                    }
                 }
-                recyclerView.adapter = musicAdapter
             } else {
                 finishAffinity() // Fermer l'application s'il n'y a pas d'uri
             }
@@ -75,48 +94,10 @@ class MainActivity : ComponentActivity() {
                 onUriReady(null)
             }
         }
-
         resultLauncher.launch(intent)
     }
 
-    /*private fun setAudioFiles(context: Context) {
-        audioFiles = ArrayList<AudioFile>()
-        //val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        //val uri = MediaStore.Audio.Media.INTERNAL_CONTENT_URI
-        Log.d("MyDebug", "GetAudioFiles uri : ${uri.toString()}")
-        uri?.let { uri ->
-            val projection = arrayOf(
-                MediaStore.Audio.Media._ID,
-                MediaStore.Audio.Media.TITLE,
-                MediaStore.Audio.Media.ARTIST,
-                MediaStore.Audio.Media.DURATION,
-                MediaStore.Audio.Media.DATA
-            )
-            Log.d("MyDebug", "projection")
-            val cursor = context.contentResolver.query(uri, projection, null, null, null)
-            Log.d("MyDebug", "cursor")
-            cursor?.use {
-                val idColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-                val titleColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-                val artistColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-                val durationColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-                val dataColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-
-                while (it.moveToNext()) {
-                    val id = it.getLong(idColumn)
-                    val title = it.getString(titleColumn)
-                    val artist = it.getString(artistColumn)
-                    val duration = it.getLong(durationColumn)
-                    val data = it.getString(dataColumn)
-                    Log.d("MyDebug", "add music")
-                    audioFiles.add(AudioFile(id, title, artist, duration, data))
-                }
-            }
-        }
-    }*/
-
-    private fun setAudioFiles(context: Context, uri: Uri) {
-        audioFiles = ArrayList<AudioFile>()
+    private suspend fun scanAudioFiles(context: Context, uri: Uri, onFileScanned: suspend (AudioFile) -> Unit) {
         val directory = DocumentFile.fromTreeUri(context, uri)
         if (directory != null && directory.isDirectory) {
             var idValue = 0L
@@ -132,15 +113,16 @@ class MainActivity : ComponentActivity() {
                             val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                             val duration = durationStr?.toLongOrNull() ?: 0L
 
-                            audioFiles.add(
-                                AudioFile(
-                                    id = idValue,
-                                    title = title,
-                                    artist = artist,
-                                    duration = duration,
-                                    data = file.uri.toString()
-                                )
+                            val audioFile = AudioFile(
+                                id = idValue,
+                                title = title,
+                                artist = artist,
+                                duration = duration,
+                                data = file.uri.toString()
                             )
+
+                            onFileScanned(audioFile)
+
                             idValue++
                         }
                     } catch (e: Exception) {
@@ -150,16 +132,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        } else {
-            Log.w("setAudioFiles", "L'URI n'est pas un dossier valide")
         }
     }
 
     private fun playAudio(audioFiles: List<AudioFile>, initialIndex: Int) {
-        val intent = Intent(this, MusicService::class.java).apply {
+        if (musicServiceIntent != null) stopService(musicServiceIntent)
+        musicServiceIntent = Intent(this, MusicService::class.java).apply {
             putParcelableArrayListExtra("audioFiles", ArrayList(audioFiles))
             putExtra("initialIndex", initialIndex)
         }
-        startService(intent)
+        startService(musicServiceIntent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (musicServiceIntent != null) stopService(musicServiceIntent)
     }
 }
