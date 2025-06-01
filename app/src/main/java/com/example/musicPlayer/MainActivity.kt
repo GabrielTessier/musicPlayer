@@ -1,6 +1,7 @@
 package com.example.musicPlayer
 
 import android.app.Activity
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -12,62 +13,79 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.ArrayList
 import android.media.MediaMetadataRetriever
+import android.widget.LinearLayout
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-lateinit var mainActivity: MainActivity
+import android.content.IntentFilter
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class MainActivity : ComponentActivity() {
-
     private lateinit var recyclerView: RecyclerView
     lateinit var musicAdapter: MusicAdapter
     private var uri : Uri? = null
-    var audioFiles : ArrayList<AudioFile> = ArrayList()
+    private var audioFiles : ArrayList<AudioFile> = ArrayList()
+    private lateinit var musicButtonLinearLayout: LinearLayout
 
-    private var musicServiceIntent: Intent? = null
+    private lateinit var musicController: MusicController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        mainActivity = this
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("ACTION_FROM_SERVICE"))
 
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        musicAdapter = MusicAdapter { audioFile ->
+        musicButtonLinearLayout = findViewById(R.id.musicButtonLinearLayout)
+        musicButtonLinearLayout.setOnClickListener {
+            val intent = Intent(this, MusicActivity::class.java)
+            intent.putParcelableArrayListExtra("audioFiles", audioFiles)
+            startActivity(intent)
+        }
+
+        musicAdapter = MusicAdapter(audioFiles) { audioFile ->
             // Gérer la lecture de l'audio ici
             val index = audioFiles.indexOfFirst { it.id == audioFile.id }
-            playAudio(audioFiles, index)
+            musicController.playAudio(audioFiles, index)
             // Mettre à jour l'ID de la musique actuellement jouée
             musicAdapter.setSelectedAudioId(audioFile.id, index)
         }
         recyclerView.adapter = musicAdapter
 
-        setURI { uri ->
-            if (uri != null) {
-                this.uri = uri
-                // ⚡ Lancer l’analyse en arrière-plan
-                lifecycleScope.launch {
-                    withContext(Dispatchers.IO) {
-                        scanAudioFiles(this@MainActivity, uri) { audioFile ->
-                            withContext(Dispatchers.Main) {
-                                val position = audioFiles.size
-                                audioFiles.add(audioFile)
-                                musicAdapter.notifyItemInserted(position)
+        if (MusicService.isServiceRunning) {
+            musicController = MusicController(this) {
+                for (audio in musicController.musicService?.audioFiles?:ArrayList()) {
+                    audioFiles.add(audio)
+                }
+            }
+        } else {
+            musicController = MusicController(this) {}
+            setURI { uri ->
+                if (uri != null) {
+                    this.uri = uri
+                    // ⚡ Lancer l’analyse en arrière-plan
+                    lifecycleScope.launch {
+                        withContext(Dispatchers.IO) {
+                            scanAudioFiles(this@MainActivity, uri) { audioFile ->
+                                withContext(Dispatchers.Main) {
+                                    val position = audioFiles.size
+                                    audioFiles.add(audioFile)
+                                    musicAdapter.notifyItemInserted(position)
 
-                                recyclerView.post {
-                                    recyclerView.invalidateItemDecorations()
+                                    recyclerView.post {
+                                        recyclerView.invalidateItemDecorations()
+                                    }
                                 }
                             }
                         }
                     }
+                } else {
+                    finishAffinity() // Fermer l'application s'il n'y a pas d'uri
                 }
-            } else {
-                finishAffinity() // Fermer l'application s'il n'y a pas d'uri
             }
         }
     }
@@ -112,17 +130,17 @@ class MainActivity : ComponentActivity() {
                             val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: "Inconnu"
                             val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                             val duration = durationStr?.toLongOrNull() ?: 0L
+                            val imageBytes = retriever.embeddedPicture
 
                             val audioFile = AudioFile(
                                 id = idValue,
                                 title = title,
                                 artist = artist,
                                 duration = duration,
+                                imageBytes = imageBytes,
                                 data = file.uri.toString()
                             )
-
                             onFileScanned(audioFile)
-
                             idValue++
                         }
                     } catch (e: Exception) {
@@ -135,17 +153,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun playAudio(audioFiles: List<AudioFile>, initialIndex: Int) {
-        if (musicServiceIntent != null) stopService(musicServiceIntent)
-        musicServiceIntent = Intent(this, MusicService::class.java).apply {
-            putParcelableArrayListExtra("audioFiles", ArrayList(audioFiles))
-            putExtra("initialIndex", initialIndex)
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val audio = intent?.getParcelableExtra("audio", AudioFile::class.java)
+            val audioIndex = intent?.getIntExtra("audioIndex", 0)
+            if (audio != null) {
+                musicAdapter.setSelectedAudioId(audio.id, audioIndex?:0)
+            }
         }
-        startService(musicServiceIntent)
     }
+
 
     override fun onDestroy() {
         super.onDestroy()
-        if (musicServiceIntent != null) stopService(musicServiceIntent)
+        musicController.onStop()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+        if (musicController.musicServiceIntent != null && musicController.musicService?.mediaPlayer?.isPlaying == false) stopService(musicController.musicServiceIntent)
     }
 }

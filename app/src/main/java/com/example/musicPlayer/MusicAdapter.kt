@@ -6,9 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import java.util.ArrayList
 import java.util.Locale
 
-class MusicAdapter(private val onItemClick: (AudioFile) -> Unit) : RecyclerView.Adapter<MusicAdapter.MusicViewHolder>() {
+class MusicAdapter(private var audioFiles: ArrayList<AudioFile>, private val onItemClick: (AudioFile) -> Unit) : RecyclerView.Adapter<MusicAdapter.MusicViewHolder>() {
 
     private var selectedAudioId: Long? = null
 
@@ -18,18 +19,13 @@ class MusicAdapter(private val onItemClick: (AudioFile) -> Unit) : RecyclerView.
         val duration: TextView = itemView.findViewById(R.id.duration)
     }
 
-    /*fun setAudioFiles(audioFiles: List<AudioFile>) {
-        this.audioFiles = audioFiles
-        notifyDataSetChanged()
-    }*/
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MusicViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_music, parent, false)
         return MusicViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: MusicViewHolder, position: Int) {
-        val audioFile = mainActivity.audioFiles[position]
+        val audioFile = audioFiles[position]
         holder.title.text = audioFile.title
         holder.artist.text = audioFile.artist
         holder.duration.text = formatDuration(audioFile.duration)
@@ -48,7 +44,7 @@ class MusicAdapter(private val onItemClick: (AudioFile) -> Unit) : RecyclerView.
         }
     }
 
-    override fun getItemCount(): Int = mainActivity.audioFiles.size
+    override fun getItemCount(): Int = audioFiles.size
 
     private fun formatDuration(duration: Long): String {
         val minutes = (duration / 1000) / 60
@@ -57,7 +53,7 @@ class MusicAdapter(private val onItemClick: (AudioFile) -> Unit) : RecyclerView.
     }
 
     fun setSelectedAudioId(audioId: Long, index: Int) {
-        val indexOld = mainActivity.audioFiles.indexOfFirst { it.id == selectedAudioId }
+        val indexOld = audioFiles.indexOfFirst { it.id == selectedAudioId }
         notifyItemChanged(indexOld)
         selectedAudioId = audioId
         // Met à jour l'apparence de la musique à jouer
