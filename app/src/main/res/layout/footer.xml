@@ -4,24 +4,28 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:background="@color/white"
-    android:padding="16dp"
     android:gravity="center">
 
-    <!-- Bloc 1 -->
-    <ImageView
-        android:id="@+id/footerImageMain"
+    <Button
+        android:id="@+id/musicButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:contentDescription="Main page"
-        android:src="@android:drawable/btn_minus"/>
+        android:text="@string/song"
+        android:layout_marginEnd="0dp"
+        android:padding="8dp"
+        android:backgroundTint="@color/footer_default_background"
+        android:textColor="@color/footer_font"/>
 
-    <!-- Bloc 2 -->
-    <ImageView
-        android:id="@+id/footerImagePlaylist"
+    <Button
+        android:id="@+id/playlistButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:contentDescription="Playlist page"
-        android:src="@android:drawable/btn_plus"/>
+        android:text="@string/playlist"
+        android:layout_marginStart="0dp"
+        android:padding="8dp"
+        android:backgroundTint="@color/footer_default_background"
+        android:textColor="@color/footer_font"/>
+
 </LinearLayout>

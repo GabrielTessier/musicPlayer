@@ -13,9 +13,9 @@ import androidx.activity.ComponentActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 
-class MusicActivity : ComponentActivity(), ActivityInterface {
+class MusicActivity : ComponentActivity() {
 
-    override lateinit var audioFiles: ArrayList<AudioFile>
+    lateinit var audioFiles: ArrayList<AudioFile>
     private var musicController: MusicController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {

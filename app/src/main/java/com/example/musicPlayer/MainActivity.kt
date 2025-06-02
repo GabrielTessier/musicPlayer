@@ -6,39 +6,46 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.ArrayList
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.provider.MediaStore
-import androidx.cardview.widget.CardView
+import android.util.Log
+import android.widget.Button
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import android.view.View
-import android.widget.ImageView
-import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
+import android.content.res.ColorStateList
 
-class MainActivity : ComponentActivity(), ActivityInterface {
-    private lateinit var recyclerView: RecyclerView
-    lateinit var musicAdapter: MusicAdapter
-    override var audioFiles : ArrayList<AudioFile> = ArrayList()
-    private lateinit var musicControlCardView: CardView
-    private lateinit var musicControlLinearLayout: LinearLayout
+class MainActivity : ComponentActivity() {
+    var audioFiles : ArrayList<AudioFile> = ArrayList()
+    lateinit var musicController: MusicController
 
-    private lateinit var musicController: MusicController
-    //private lateinit var footerController: FooterController<MainActivity>
+    private var view: Int = SONG_VIEW
+    private lateinit var songView: SongView
+    private lateinit var playlistView: PlaylistView
+
+    companion object {
+        const val SONG_VIEW = 0
+        const val PLAYLIST_VIEW = 1
+    }
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val audio = intent?.getParcelableExtra("audio", AudioFile::class.java)
             val audioIndex = intent?.getIntExtra("audioIndex", 0)
             if (audio != null) {
-                musicAdapter.setSelectedAudioId(audio.id, audioIndex?:0)
+                if (view == SONG_VIEW) {
+                    songView.musicAdapter.setSelectedAudioId(audio.id, audioIndex ?: 0)
+                } else if (view == PLAYLIST_VIEW) {
+                    // Rien pour l'instant
+                }
             }
         }
     }
@@ -49,75 +56,62 @@ class MainActivity : ComponentActivity(), ActivityInterface {
 
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("ACTION_FROM_SERVICE"))
 
-        musicAdapter = MusicAdapter(audioFiles) { audioFile ->
-            // Gérer la lecture de l'audio ici
-            val index = audioFiles.indexOfFirst { it.id == audioFile.id }
-            musicController.playAudio(audioFiles, index)
-            // Mettre à jour l'ID de la musique actuellement jouée
-            musicAdapter.setSelectedAudioId(audioFile.id, index)
-            toggleCardViewVisibility(true)
-        }
+        songView = SongView(this)
+        playlistView = PlaylistView(this)
 
+        Log.d("MyDebug", "test1")
 
-        setFooterOnClickListener()
-        openMain()
-
-        if (MusicService.isServiceRunning) {
-            musicController = MusicController(this) {
-                for (audio in musicController.musicService?.audioFiles?:ArrayList()) {
-                    audioFiles.add(audio)
-                }
-                toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
-                if (musicController.musicService?.mediaPlayer?.isPlaying == true) {
-                    val index = musicController.musicService?.currentAudioIndex?:0
-                    musicAdapter.selectedAudioId = audioFiles[index].id
-                }
-            }
-        } else {
-            musicController = MusicController(this) {}
-            toggleCardViewVisibility(false)
-        }
+        changeView(SONG_VIEW)
 
         checkPermission()
+    }
 
-        //footerController = FooterController(this)
+    private fun changeView(view: Int) {
+        this.view = view
+        if (view == SONG_VIEW) {
+            musicController =
+                if (MusicService.isServiceRunning) {
+                    MusicController(this) {
+                        audioFiles.clear()
+                        for (audio in musicController.musicService?.audioFiles?:ArrayList()) {
+                            audioFiles.add(audio)
+                        }
+                        songView.onMusicServiceConnect()
+                    }
+                } else {
+                    MusicController(this) {}
+                }
+            songView.open()
+        } else if (view == PLAYLIST_VIEW) {
+            playlistView.open()
+        }
+        setFooterOnClickListener()
+        updateFooter()
+    }
+
+    private fun updateFooter() {
+        val musique: Button = findViewById(R.id.musicButton)
+        val playlist: Button = findViewById(R.id.playlistButton)
+        val defaultColor = ContextCompat.getColor(this, R.color.footer_default_background)
+        val activeColor = ContextCompat.getColor(this, R.color.footer_active_background)
+        musique.backgroundTintList = ColorStateList.valueOf(if (view == SONG_VIEW) activeColor else defaultColor)
+        playlist.backgroundTintList = ColorStateList.valueOf(if (view == PLAYLIST_VIEW) activeColor else defaultColor)
     }
 
     private fun setFooterOnClickListener() {
-        val mainImage: ImageView = findViewById(R.id.footerImageMain)
-        val playlistImage: ImageView = findViewById(R.id.footerImagePlaylist)
-        mainImage.setOnClickListener {
-            setContentView(R.layout.activity_main)
-            setFooterOnClickListener()
-            openMain()
+        val musique: Button = findViewById(R.id.musicButton)
+        val playlist: Button = findViewById(R.id.playlistButton)
+        musique.setOnClickListener {
+            if (view != SONG_VIEW) {
+                setContentView(R.layout.activity_main)
+                changeView(SONG_VIEW)
+            }
         }
-        playlistImage.setOnClickListener {
-            setContentView(R.layout.playlist_layout)
-            setFooterOnClickListener()
-        }
-    }
-
-    private fun openMain() {
-        recyclerView = findViewById(R.id.recyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-
-        musicControlCardView = findViewById(R.id.musicControlCardView)
-        musicControlLinearLayout = findViewById(R.id.musicButtonLinearLayout)
-        musicControlLinearLayout.setOnClickListener {
-            val intent = Intent(this, MusicActivity::class.java)
-            intent.putParcelableArrayListExtra("audioFiles", audioFiles)
-            startActivity(intent)
-        }
-
-        recyclerView.adapter = musicAdapter
-    }
-
-    // Fonction pour afficher ou masquer le CardView
-    private fun toggleCardViewVisibility(show: Boolean) {
-        if (show) {
-            musicControlCardView.visibility = View.VISIBLE  // Afficher le CardView
-        } else {
-            musicControlCardView.visibility = View.GONE  // Masquer le CardView
+        playlist.setOnClickListener {
+            if (view != PLAYLIST_VIEW) {
+                setContentView(R.layout.playlist_layout)
+                changeView(PLAYLIST_VIEW)
+            }
         }
     }
 
@@ -129,10 +123,8 @@ class MainActivity : ComponentActivity(), ActivityInterface {
             updateAudioFiles { audioFile ->
                 val position = audioFiles.size
                 audioFiles.add(audioFile)
-                musicAdapter.notifyItemInserted(position)
-                recyclerView.post {
-                    recyclerView.invalidateItemDecorations()
-                }
+                songView.onUpdateAddSong(position)
+                playlistView.onUpdateAddSong(position)
             }
         } else {
             // Permission refusée
@@ -151,10 +143,8 @@ class MainActivity : ComponentActivity(), ActivityInterface {
                 updateAudioFiles { audioFile ->
                     val position = audioFiles.size
                     audioFiles.add(audioFile)
-                    musicAdapter.notifyItemInserted(position)
-                    recyclerView.post {
-                        recyclerView.invalidateItemDecorations()
-                    }
+                    songView.onUpdateAddSong(position)
+                    playlistView.onUpdateAddSong(position)
                 }
             }
             shouldShowRequestPermissionRationale(Manifest.permission.READ_MEDIA_AUDIO) -> {
@@ -175,10 +165,8 @@ class MainActivity : ComponentActivity(), ActivityInterface {
     private fun updateAudioFiles(onFileScanned: (AudioFile) -> Unit) {
         clearAudioFiles()
         getAllAudioFiles(onFileScanned)
-        if (musicAdapter.selectedAudioId != null) {
-            val index = audioFiles.indexOfFirst { it.id == musicAdapter.selectedAudioId }
-            musicAdapter.setSelectedAudioId(musicAdapter.selectedAudioId?:0, index)
-        }
+        songView.onUpdateAudioFiles()
+        playlistView.onUpdateAudioFiles()
     }
 
     private fun clearAudioFiles() {

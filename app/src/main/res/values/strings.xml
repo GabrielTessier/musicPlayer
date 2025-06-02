@@ -6,4 +6,6 @@
     <string name="back">Retour</string>
     <string name="music_disk">Image de la musique</string>
     <string name="separateur_nom_durer">" \u25CF "</string>
+    <string name="song">Musique</string>
+    <string name="playlist">Playlist</string>
 </resources>
