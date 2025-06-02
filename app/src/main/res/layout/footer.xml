@@ -8,11 +8,20 @@
     android:gravity="center">
 
     <!-- Bloc 1 -->
-    <!--<ImageView
-        android:id="@+id/footerImage1"
+    <ImageView
+        android:id="@+id/footerImageMain"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:contentDescription="TODO"
-        android:src=""/>-->
+        android:contentDescription="Main page"
+        android:src="@android:drawable/btn_minus"/>
+
+    <!-- Bloc 2 -->
+    <ImageView
+        android:id="@+id/footerImagePlaylist"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:contentDescription="Playlist page"
+        android:src="@android:drawable/btn_plus"/>
 </LinearLayout>

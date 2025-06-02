@@ -17,19 +17,31 @@ import android.provider.MediaStore
 import androidx.cardview.widget.CardView
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), ActivityInterface {
     private lateinit var recyclerView: RecyclerView
     lateinit var musicAdapter: MusicAdapter
-    private var audioFiles : ArrayList<AudioFile> = ArrayList()
+    override var audioFiles : ArrayList<AudioFile> = ArrayList()
     private lateinit var musicControlCardView: CardView
     private lateinit var musicControlLinearLayout: LinearLayout
 
     private lateinit var musicController: MusicController
+    //private lateinit var footerController: FooterController<MainActivity>
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val audio = intent?.getParcelableExtra("audio", AudioFile::class.java)
+            val audioIndex = intent?.getIntExtra("audioIndex", 0)
+            if (audio != null) {
+                musicAdapter.setSelectedAudioId(audio.id, audioIndex?:0)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +49,55 @@ class MainActivity : ComponentActivity() {
 
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("ACTION_FROM_SERVICE"))
 
+        musicAdapter = MusicAdapter(audioFiles) { audioFile ->
+            // Gérer la lecture de l'audio ici
+            val index = audioFiles.indexOfFirst { it.id == audioFile.id }
+            musicController.playAudio(audioFiles, index)
+            // Mettre à jour l'ID de la musique actuellement jouée
+            musicAdapter.setSelectedAudioId(audioFile.id, index)
+            toggleCardViewVisibility(true)
+        }
+
+
+        setFooterOnClickListener()
+        openMain()
+
+        if (MusicService.isServiceRunning) {
+            musicController = MusicController(this) {
+                for (audio in musicController.musicService?.audioFiles?:ArrayList()) {
+                    audioFiles.add(audio)
+                }
+                toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
+                if (musicController.musicService?.mediaPlayer?.isPlaying == true) {
+                    val index = musicController.musicService?.currentAudioIndex?:0
+                    musicAdapter.selectedAudioId = audioFiles[index].id
+                }
+            }
+        } else {
+            musicController = MusicController(this) {}
+            toggleCardViewVisibility(false)
+        }
+
+        checkPermission()
+
+        //footerController = FooterController(this)
+    }
+
+    private fun setFooterOnClickListener() {
+        val mainImage: ImageView = findViewById(R.id.footerImageMain)
+        val playlistImage: ImageView = findViewById(R.id.footerImagePlaylist)
+        mainImage.setOnClickListener {
+            setContentView(R.layout.activity_main)
+            setFooterOnClickListener()
+            openMain()
+        }
+        playlistImage.setOnClickListener {
+            setContentView(R.layout.playlist_layout)
+            setFooterOnClickListener()
+        }
+    }
+
+    private fun openMain() {
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -48,38 +109,7 @@ class MainActivity : ComponentActivity() {
             startActivity(intent)
         }
 
-        musicAdapter = MusicAdapter(audioFiles) { audioFile ->
-            // Gérer la lecture de l'audio ici
-            val index = audioFiles.indexOfFirst { it.id == audioFile.id }
-            musicController.playAudio(audioFiles, index)
-            // Mettre à jour l'ID de la musique actuellement jouée
-            musicAdapter.setSelectedAudioId(audioFile.id, index)
-            toggleCardViewVisibility(true)
-        }
         recyclerView.adapter = musicAdapter
-
-        if (MusicService.isServiceRunning) {
-            musicController = MusicController(this) {
-                for (audio in musicController.musicService?.audioFiles?:ArrayList()) {
-                    audioFiles.add(audio)
-                }
-                toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
-            }
-        } else {
-            musicController = MusicController(this) {}
-            toggleCardViewVisibility(false)
-            checkPermission()
-        }
-    }
-
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val audio = intent?.getParcelableExtra("audio", AudioFile::class.java)
-            val audioIndex = intent?.getIntExtra("audioIndex", 0)
-            if (audio != null) {
-                musicAdapter.setSelectedAudioId(audio.id, audioIndex?:0)
-            }
-        }
     }
 
     // Fonction pour afficher ou masquer le CardView
@@ -96,7 +126,7 @@ class MainActivity : ComponentActivity() {
     ) { isGranted ->
         if (isGranted) {
             // Permission accordée
-            getAllAudioFiles { audioFile ->
+            updateAudioFiles { audioFile ->
                 val position = audioFiles.size
                 audioFiles.add(audioFile)
                 musicAdapter.notifyItemInserted(position)
@@ -118,7 +148,7 @@ class MainActivity : ComponentActivity() {
         when {
             ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED -> {
                 // Permission déjà accordée
-                getAllAudioFiles { audioFile ->
+                updateAudioFiles { audioFile ->
                     val position = audioFiles.size
                     audioFiles.add(audioFile)
                     musicAdapter.notifyItemInserted(position)
@@ -140,6 +170,19 @@ class MainActivity : ComponentActivity() {
                 requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_AUDIO)
             }
         }
+    }
+
+    private fun updateAudioFiles(onFileScanned: (AudioFile) -> Unit) {
+        clearAudioFiles()
+        getAllAudioFiles(onFileScanned)
+        if (musicAdapter.selectedAudioId != null) {
+            val index = audioFiles.indexOfFirst { it.id == musicAdapter.selectedAudioId }
+            musicAdapter.setSelectedAudioId(musicAdapter.selectedAudioId?:0, index)
+        }
+    }
+
+    private fun clearAudioFiles() {
+        audioFiles.clear()
     }
 
     private fun getAllAudioFiles(onFileScanned: (AudioFile) -> Unit) {
@@ -172,17 +215,18 @@ class MainActivity : ComponentActivity() {
                 val duration = it.getLong(durationColumn)
                 val albumId = it.getLong(albumIdColumn)
 
-                val albumArtUri = getAlbumArtUri(albumId)
-
-                val audioFile = AudioFile(
-                    id = id,
-                    title = title,
-                    artist = artist,
-                    duration = duration,
-                    albumArtUri = albumArtUri,
-                    data = path
-                )
-                onFileScanned(audioFile)
+                if (duration != 0L) {
+                    val albumArtUri = getAlbumArtUri(albumId)
+                    val audioFile = AudioFile(
+                        id = id,
+                        title = title,
+                        artist = artist,
+                        duration = duration,
+                        albumArtUri = albumArtUri,
+                        data = path
+                    )
+                    onFileScanned(audioFile)
+                }
             }
         }
     }

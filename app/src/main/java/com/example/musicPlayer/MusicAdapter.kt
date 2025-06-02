@@ -11,7 +11,7 @@ import java.util.Locale
 
 class MusicAdapter(private var audioFiles: ArrayList<AudioFile>, private val onItemClick: (AudioFile) -> Unit) : RecyclerView.Adapter<MusicAdapter.MusicViewHolder>() {
 
-    private var selectedAudioId: Long? = null
+    var selectedAudioId: Long? = null
 
     class MusicViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val title: TextView = itemView.findViewById(R.id.title)
@@ -54,9 +54,8 @@ class MusicAdapter(private var audioFiles: ArrayList<AudioFile>, private val onI
 
     fun setSelectedAudioId(audioId: Long, index: Int) {
         val indexOld = audioFiles.indexOfFirst { it.id == selectedAudioId }
-        notifyItemChanged(indexOld)
         selectedAudioId = audioId
-        // Met à jour l'apparence de la musique à jouer
+        notifyItemChanged(indexOld)
         notifyItemChanged(index)
     }
 }

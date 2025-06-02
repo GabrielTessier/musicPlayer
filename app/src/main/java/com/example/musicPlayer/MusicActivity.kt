@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -12,9 +13,9 @@ import androidx.activity.ComponentActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 
-class MusicActivity : ComponentActivity() {
+class MusicActivity : ComponentActivity(), ActivityInterface {
 
-    private lateinit var audioFiles: ArrayList<AudioFile>
+    override lateinit var audioFiles: ArrayList<AudioFile>
     private var musicController: MusicController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,6 +32,9 @@ class MusicActivity : ComponentActivity() {
         btnRetour.setOnClickListener {
             finish()  // Termine MusicActivity et retourne à MainActivity
         }
+
+        val musicTextCard: TextView = findViewById(R.id.cardMusicTitle)
+        musicTextCard.visibility = View.GONE
     }
 
     fun updateMusicController() {
