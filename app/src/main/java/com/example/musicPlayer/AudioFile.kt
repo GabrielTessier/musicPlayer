@@ -1,5 +1,6 @@
 package com.example.musicPlayer
 
+import android.net.Uri
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
@@ -9,6 +10,6 @@ data class AudioFile(
     val title: String,
     val artist: String,
     val duration: Long,
-    val imageBytes: ByteArray?,
+    val albumArtUri: String,
     val data: String
 ) : Parcelable

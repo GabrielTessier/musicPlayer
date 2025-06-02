@@ -4,13 +4,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.bumptech.glide.Glide
 
 class MusicActivity : ComponentActivity() {
 
@@ -45,11 +45,8 @@ class MusicActivity : ComponentActivity() {
                 val textDuration = findViewById<TextView>(R.id.duration)
                 textDuration.text = musicController?.formatTime(audio.duration)
 
-                if (audio.imageBytes != null) {
-                    val bitmap = BitmapFactory.decodeByteArray(audio.imageBytes, 0, audio.imageBytes.size)
-                    val imageView = findViewById<ImageView>(R.id.image)
-                    imageView.setImageBitmap(bitmap)
-                }
+                val imageView = findViewById<ImageView>(R.id.image)
+                loadAlbumArt(audio.albumArtUri, imageView)
             }
         }
         musicController?.update()
@@ -62,6 +59,15 @@ class MusicActivity : ComponentActivity() {
             if (audio != null) {
                 updateMusicController()
             }
+        }
+    }
+
+    private fun loadAlbumArt(albumArtUri: String?, imageView: ImageView) {
+        albumArtUri?.let {
+            Glide.with(this)
+                .load(it)
+                .placeholder(R.drawable.music_disk) // Image de remplacement
+                .into(imageView)
         }
     }
 

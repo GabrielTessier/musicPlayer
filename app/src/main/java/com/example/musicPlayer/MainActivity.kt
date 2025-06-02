@@ -1,28 +1,27 @@
 package com.example.musicPlayer
 
-import android.app.Activity
+import android.Manifest
 import android.content.BroadcastReceiver
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.ArrayList
-import android.media.MediaMetadataRetriever
-import androidx.documentfile.provider.DocumentFile
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.provider.MediaStore
 import androidx.cardview.widget.CardView
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 
 class MainActivity : ComponentActivity() {
     private lateinit var recyclerView: RecyclerView
@@ -33,6 +32,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var musicControlLinearLayout: LinearLayout
 
     private lateinit var musicController: MusicController
+
+    companion object {
+        private const val MY_PERMISSIONS_REQUEST_READ_MEDIA_AUDIO = 1
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,92 +74,7 @@ class MainActivity : ComponentActivity() {
         } else {
             musicController = MusicController(this) {}
             toggleCardViewVisibility(false)
-            setURI { uri ->
-                if (uri != null) {
-                    this.uri = uri
-                    // ⚡ Lancer l’analyse en arrière-plan
-                    lifecycleScope.launch {
-                        withContext(Dispatchers.IO) {
-                            scanAudioFiles(this@MainActivity, uri) { audioFile ->
-                                withContext(Dispatchers.Main) {
-                                    val position = audioFiles.size
-                                    audioFiles.add(audioFile)
-                                    musicAdapter.notifyItemInserted(position)
-
-                                    recyclerView.post {
-                                        recyclerView.invalidateItemDecorations()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    finishAffinity() // Fermer l'application s'il n'y a pas d'uri
-                }
-            }
-        }
-    }
-
-    private fun setURI(onUriReady: (Uri?) -> Unit) {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-        intent.addFlags(
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-        )
-        val resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val data: Intent? = result.data
-                val uri = data?.data
-                if (uri != null) {
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    )
-                }
-                onUriReady(uri)
-            } else {
-                onUriReady(null)
-            }
-        }
-        resultLauncher.launch(intent)
-    }
-
-    private suspend fun scanAudioFiles(context: Context, uri: Uri, onFileScanned: suspend (AudioFile) -> Unit) {
-        val directory = DocumentFile.fromTreeUri(context, uri)
-        if (directory != null && directory.isDirectory) {
-            var idValue = 0L
-            for (file in directory.listFiles()) {
-                if (file.isFile && file.type?.startsWith("audio") == true) {
-                    val retriever = MediaMetadataRetriever()
-                    try {
-                        context.contentResolver.openFileDescriptor(file.uri, "r")?.use { fd ->
-                            retriever.setDataSource(fd.fileDescriptor)
-
-                            val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: file.name ?: "Inconnu"
-                            val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: "Inconnu"
-                            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                            val duration = durationStr?.toLongOrNull() ?: 0L
-                            val imageBytes = retriever.embeddedPicture
-
-                            val audioFile = AudioFile(
-                                id = idValue,
-                                title = title,
-                                artist = artist,
-                                duration = duration,
-                                imageBytes = imageBytes,
-                                data = file.uri.toString()
-                            )
-                            onFileScanned(audioFile)
-                            idValue++
-                        }
-                    } catch (e: Exception) {
-                        Log.e("setAudioFiles", "Erreur de lecture : ${file.name}", e)
-                    } finally {
-                        retriever.release()
-                    }
-                }
-            }
+            checkPermission()
         }
     }
 
@@ -177,6 +95,107 @@ class MainActivity : ComponentActivity() {
         } else {
             musicControlCardView.visibility = View.GONE  // Masquer le CardView
         }
+    }
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission accordée
+            getAllAudioFiles { audioFile ->
+                val position = audioFiles.size
+                audioFiles.add(audioFile)
+                musicAdapter.notifyItemInserted(position)
+                recyclerView.post {
+                    recyclerView.invalidateItemDecorations()
+                }
+            }
+        } else {
+            // Permission refusée
+            Toast.makeText(
+                this,
+                "Permission refusée pour lire les fichiers audio.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun checkPermission() {
+        when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED -> {
+                // Permission déjà accordée
+                getAllAudioFiles { audioFile ->
+                    val position = audioFiles.size
+                    audioFiles.add(audioFile)
+                    musicAdapter.notifyItemInserted(position)
+                    recyclerView.post {
+                        recyclerView.invalidateItemDecorations()
+                    }
+                }
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.READ_MEDIA_AUDIO) -> {
+                // Expliquer à l'utilisateur pourquoi l'application a besoin de la permission
+                Toast.makeText(
+                    this,
+                    "L'application a besoin de cette permission pour lire les fichiers audio.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            else -> {
+                // Demander la permission
+                requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_AUDIO)
+            }
+        }
+    }
+
+    private fun getAllAudioFiles(onFileScanned: (AudioFile) -> Unit) {
+        val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.ALBUM_ID
+        )
+
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+        val cursor = contentResolver.query(uri, projection, selection, null, null)
+
+        cursor?.use {
+            val idColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            val titleColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+            val artistColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+            val dataColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            val durationColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+            val albumIdColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+
+            while (it.moveToNext()) {
+                val id = it.getLong(idColumn)
+                val title = it.getString(titleColumn)
+                val artist = it.getString(artistColumn)
+                val path = it.getString(dataColumn)
+                val duration = it.getLong(durationColumn)
+                val albumId = it.getLong(albumIdColumn)
+
+                val albumArtUri = getAlbumArtUri(albumId)
+
+                val audioFile = AudioFile(
+                    id = id,
+                    title = title,
+                    artist = artist,
+                    duration = duration,
+                    albumArtUri = albumArtUri,
+                    data = path
+                )
+                onFileScanned(audioFile)
+            }
+        }
+    }
+
+    private fun getAlbumArtUri(albumId: Long): String {
+        val albumArtUri = "content://media/external/audio/albumart".toUri()
+        return ContentUris.withAppendedId(albumArtUri, albumId).toString()
     }
 
     override fun onDestroy() {
