@@ -19,16 +19,16 @@ import java.util.ArrayList
 import java.util.Locale
 
 class MusicController (private var activity: ComponentActivity, private val onMusicServiceConnect: () -> Unit) {
-    private var seekBar: SeekBar = activity.findViewById(R.id.seekBar)
+    private lateinit var seekBar: SeekBar
     private var isUserSeeking = false
-    private var playButton: ImageButton = activity.findViewById(R.id.btnPlayPause)
-    private var previousButton: ImageButton = activity.findViewById(R.id.btnPrevious)
-    private var nextButton: ImageButton = activity.findViewById(R.id.btnNext)
-    private var textCurrentTime: TextView = activity.findViewById(R.id.textCurrentTime)
-    private var textTotalTime: TextView = activity.findViewById(R.id.textTotalDuration)
-    private var textCardTitle: TextView = activity.findViewById(R.id.cardMusicTitle)
+    private lateinit var playButton: ImageButton
+    private lateinit var previousButton: ImageButton
+    private lateinit var nextButton: ImageButton
+    private lateinit var textCurrentTime: TextView
+    private lateinit var textTotalTime: TextView
+    private lateinit var textCardTitle: TextView
 
-    var musicServiceIntent: Intent? = null
+    private var musicServiceIntent: Intent? = null
     var musicService: MusicService? = null
     private var isBound = false
 
@@ -48,20 +48,10 @@ class MusicController (private var activity: ComponentActivity, private val onMu
     }
 
     init {
+        reloadVar()
+
         val intent = Intent(activity, MusicService::class.java)
         activity.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-
-        previousButton.setOnClickListener {
-            previousMusic()
-        }
-        nextButton.setOnClickListener {
-            nextMusic()
-        }
-
-        playButton.setOnClickListener {
-            if (musicService?.mediaPlayer?.isPlaying == true) pauseMusic()
-            else startMusic()
-        }
 
         activity.lifecycleScope.launch {
             withContext(Dispatchers.Main) {
@@ -70,6 +60,27 @@ class MusicController (private var activity: ComponentActivity, private val onMu
                     delay(500)
                 }
             }
+        }
+    }
+
+    fun reloadVar() {
+        seekBar = activity.findViewById(R.id.seekBar)
+        playButton = activity.findViewById(R.id.btnPlayPause)
+        previousButton = activity.findViewById(R.id.btnPrevious)
+        nextButton = activity.findViewById(R.id.btnNext)
+        textCurrentTime = activity.findViewById(R.id.textCurrentTime)
+        textTotalTime = activity.findViewById(R.id.textTotalDuration)
+        textCardTitle = activity.findViewById(R.id.cardMusicTitle)
+
+        previousButton.setOnClickListener {
+            previousMusic()
+        }
+        nextButton.setOnClickListener {
+            nextMusic()
+        }
+        playButton.setOnClickListener {
+            if (musicService?.mediaPlayer?.isPlaying == true) pauseMusic()
+            else startMusic()
         }
 
         // Déplacement manuel de la SeekBar par l’utilisateur

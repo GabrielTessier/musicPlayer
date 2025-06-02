@@ -6,11 +6,13 @@ import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import java.util.ArrayList
 
 class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     private lateinit var recyclerView: RecyclerView
     private var scrollY: Int = 0
     lateinit var musicAdapter: MusicAdapter
+    private lateinit var musicController: MusicController
 
     private lateinit var musicControlCardView: CardView
     private lateinit var musicControlLinearLayout: LinearLayout
@@ -19,14 +21,29 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
         musicAdapter = MusicAdapter(main.audioFiles) { audioFile ->
             // Gérer la lecture de l'audio ici
             val index = main.audioFiles.indexOfFirst { it.id == audioFile.id }
-            main.musicController.playAudio(main.audioFiles, index)
+            musicController.playAudio(main.audioFiles, index)
             // Mettre à jour l'ID de la musique actuellement jouée
             musicAdapter.setSelectedAudioId(audioFile.id, index)
             toggleCardViewVisibility(true)
         }
+
+        musicController =
+            if (MusicService.isServiceRunning) {
+                MusicController(main) {
+                    main.audioFiles.clear()
+                    for (audio in musicController.musicService?.audioFiles?: ArrayList()) {
+                        main.audioFiles.add(audio)
+                    }
+                    onMusicServiceConnect()
+                }
+            } else {
+                MusicController(main) {}
+            }
     }
 
     override fun open() {
+        musicController.reloadVar()
+
         recyclerView = main.findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(main)
         val layoutManager = recyclerView.layoutManager as LinearLayoutManager
@@ -51,7 +68,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
 
         recyclerView.adapter = musicAdapter
 
-        toggleCardViewVisibility(main.musicController.musicService?.mediaPlayer?.isPlaying?:false)
+        toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
     }
 
     // Fonction pour afficher ou masquer le CardView
@@ -64,9 +81,9 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     }
 
     override fun onMusicServiceConnect() {
-        toggleCardViewVisibility(main.musicController.musicService?.mediaPlayer?.isPlaying?:false)
-        if (main.musicController.musicService?.mediaPlayer?.isPlaying == true) {
-            val index = main.musicController.musicService?.currentAudioIndex?:0
+        toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
+        if (musicController.musicService?.mediaPlayer?.isPlaying == true) {
+            val index = musicController.musicService?.currentAudioIndex?:0
             musicAdapter.selectedAudioId = main.audioFiles[index].id
         }
     }

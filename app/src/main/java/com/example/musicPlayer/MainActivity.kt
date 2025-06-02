@@ -11,21 +11,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import java.util.ArrayList
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.provider.MediaStore
-import android.util.Log
 import android.widget.Button
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import android.content.res.ColorStateList
 
 class MainActivity : ComponentActivity() {
     var audioFiles : ArrayList<AudioFile> = ArrayList()
-    lateinit var musicController: MusicController
 
     private var view: Int = SONG_VIEW
     private lateinit var songView: SongView
@@ -59,8 +54,6 @@ class MainActivity : ComponentActivity() {
         songView = SongView(this)
         playlistView = PlaylistView(this)
 
-        Log.d("MyDebug", "test1")
-
         changeView(SONG_VIEW)
 
         checkPermission()
@@ -69,18 +62,6 @@ class MainActivity : ComponentActivity() {
     private fun changeView(view: Int) {
         this.view = view
         if (view == SONG_VIEW) {
-            musicController =
-                if (MusicService.isServiceRunning) {
-                    MusicController(this) {
-                        audioFiles.clear()
-                        for (audio in musicController.musicService?.audioFiles?:ArrayList()) {
-                            audioFiles.add(audio)
-                        }
-                        songView.onMusicServiceConnect()
-                    }
-                } else {
-                    MusicController(this) {}
-                }
             songView.open()
         } else if (view == PLAYLIST_VIEW) {
             playlistView.open()
@@ -226,8 +207,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        musicController.onStop()
+        //musicController.onStop()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
-        if (musicController.musicServiceIntent != null && musicController.musicService?.mediaPlayer?.isPlaying == false) stopService(musicController.musicServiceIntent)
+        //if (musicController.musicServiceIntent != null && musicController.musicService?.mediaPlayer?.isPlaying == false) stopService(musicController.musicServiceIntent)
     }
 }
