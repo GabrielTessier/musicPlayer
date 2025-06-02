@@ -55,8 +55,9 @@ class MainActivity : ComponentActivity() {
         playlistView = PlaylistView(this)
 
         changeView(SONG_VIEW)
-
         checkPermission()
+
+        songView.updateItemList(audioFiles)
     }
 
     private fun changeView(view: Int) {

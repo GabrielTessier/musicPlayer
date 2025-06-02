@@ -6,7 +6,7 @@ import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.util.ArrayList
+import kotlin.collections.ArrayList
 
 class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     private lateinit var recyclerView: RecyclerView
@@ -17,16 +17,9 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     private lateinit var musicControlCardView: CardView
     private lateinit var musicControlLinearLayout: LinearLayout
 
-    init {
-        musicAdapter = MusicAdapter(main.audioFiles) { audioFile ->
-            // Gérer la lecture de l'audio ici
-            val index = main.audioFiles.indexOfFirst { it.id == audioFile.id }
-            musicController.playAudio(main.audioFiles, index)
-            // Mettre à jour l'ID de la musique actuellement jouée
-            musicAdapter.setSelectedAudioId(audioFile.id, index)
-            toggleCardViewVisibility(true)
-        }
+    private lateinit var items: MutableList<Item>
 
+    init {
         musicController =
             if (MusicService.isServiceRunning) {
                 MusicController(main) {
@@ -39,6 +32,33 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
             } else {
                 MusicController(main) {}
             }
+        updateItemList(main.audioFiles)
+        musicAdapter = MusicAdapter(items) { audioFile ->
+            // Gérer la lecture de l'audio ici
+            val index = main.audioFiles.indexOfFirst { it.id == audioFile.id }
+            musicController.playAudio(main.audioFiles, index)
+            // Mettre à jour l'ID de la musique actuellement jouée
+            musicAdapter.setSelectedAudioId(audioFile.id, index)
+            toggleCardViewVisibility(true)
+        }
+    }
+
+    fun updateItemList(audioFiles: List<AudioFile>) {
+        items = MutableList(audioFiles.size+1) { index: Int ->
+            if (index != audioFiles.size) {
+                val audio = audioFiles[index]
+                Item.RealItem(
+                    id = audio.id,
+                    title = audio.title,
+                    artist = audio.artist,
+                    duration = audio.duration,
+                    albumArtUri = audio.albumArtUri,
+                    data = audio.data
+                )
+            } else {
+                Item.FakeItem(-1)
+            }
+        }
     }
 
     override fun open() {
@@ -89,6 +109,17 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     }
 
     override fun onUpdateAddSong(position: Int) {
+        val audio = main.audioFiles[position]
+        val item = Item.RealItem(
+            id = audio.id,
+            title = audio.title,
+            artist = audio.artist,
+            duration = audio.duration,
+            albumArtUri = audio.albumArtUri,
+            data = audio.data
+        )
+        items.add(position, item)
+
         musicAdapter.notifyItemInserted(position)
         recyclerView.post {
             recyclerView.invalidateItemDecorations()
