@@ -26,6 +26,14 @@ class MusicService : Service() {
     private lateinit var mediaSession: MediaSessionCompat
 
     private val handler = Handler(Looper.getMainLooper())
+    private val updateProgress = object : Runnable {
+        override fun run() {
+            mediaPlayer?.let {
+                updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
+            }
+            handler.postDelayed(this, 1000) // Mettre à jour toutes les secondes
+        }
+    }
 
     companion object {
         const val CHANNEL_ID = "MusicPlayerChannel"
@@ -77,9 +85,9 @@ class MusicService : Service() {
         val playbackState = PlaybackStateCompat.Builder()
             .setActions(
                 PlaybackStateCompat.ACTION_PLAY or
-                        PlaybackStateCompat.ACTION_PAUSE or
-                        PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                PlaybackStateCompat.ACTION_PAUSE or
+                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
             )
             .setState(state, mediaPlayer?.currentPosition?.toLong()?:0, 1.0f)
             .build()
@@ -126,6 +134,7 @@ class MusicService : Service() {
             //sendBroadcast(intent)
             LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
 
+            // Affichage
             startForeground(NOTIFICATION_ID, createNotification(currentAudio.title, currentAudio.artist))
         } else {
             // Si nous avons atteint la fin de la liste, arrêter le service
@@ -135,11 +144,14 @@ class MusicService : Service() {
 
     fun startMusic() {
         mediaPlayer?.start()
+        handler.removeCallbacks(updateProgress)
+        handler.post(updateProgress)
         updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
     }
 
     fun pauseMusic() {
         mediaPlayer?.pause()
+        handler.removeCallbacks(updateProgress)
         updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)
     }
 
@@ -171,20 +183,21 @@ class MusicService : Service() {
             .setContentTitle(title)
             .setContentText(artist)
             .setSmallIcon(android.R.drawable.ic_media_play)
+            .addAction(NotificationCompat.Action(android.R.drawable.ic_media_previous, "Précédent", null))
+            .addAction(NotificationCompat.Action(android.R.drawable.ic_media_pause, "Pause", null))
+            .addAction(NotificationCompat.Action(android.R.drawable.ic_media_next, "Suivant", null))
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(mediaSession.sessionToken)
                     .setShowActionsInCompactView(0, 1, 2)
             )
-            .addAction(NotificationCompat.Action(android.R.drawable.ic_media_previous, "Précédent", null))
-            .addAction(NotificationCompat.Action(android.R.drawable.ic_media_pause, "Pause", null))
-            .addAction(NotificationCompat.Action(android.R.drawable.ic_media_next, "Suivant", null))
             .setOngoing(true)
             .build()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        handler.removeCallbacks(updateProgress)
         mediaPlayer?.let {
             if (it.isPlaying) {
                 it.stop()

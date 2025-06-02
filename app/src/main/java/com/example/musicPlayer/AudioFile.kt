@@ -12,3 +12,9 @@ data class AudioFile(
     val albumArtUri: String,
     val data: String
 ) : Parcelable
+
+data class Playlist(
+    val id: Long,
+    val name: String,
+    val audios: MutableList<AudioFile>
+)
