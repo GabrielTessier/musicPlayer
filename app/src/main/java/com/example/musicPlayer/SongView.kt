@@ -144,4 +144,8 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
             musicAdapter.setSelectedAudioId(musicAdapter.selectedAudioId?:0, index)
         }
     }
+
+    override fun onDestroy() {
+        musicController.onStop()
+    }
 }

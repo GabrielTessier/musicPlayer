@@ -208,7 +208,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        //musicController.onStop()
         songView.onDestroy()
         playlistView.onDestroy()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)

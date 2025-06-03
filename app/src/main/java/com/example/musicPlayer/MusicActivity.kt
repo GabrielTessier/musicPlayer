@@ -77,6 +77,7 @@ class MusicActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        musicController?.onStop()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
     }
 }
