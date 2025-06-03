@@ -50,7 +50,7 @@ class MusicActivity : ComponentActivity() {
                 textDuration.text = musicController?.formatTime(audio.duration)
 
                 val imageView = findViewById<ImageView>(R.id.image)
-                loadAlbumArt(audio.albumArtUri, imageView)
+                MainActivity.loadAlbumArt(audio.albumArtUri, imageView, R.drawable.music_disk)
             }
         }
         musicController?.update()
@@ -63,15 +63,6 @@ class MusicActivity : ComponentActivity() {
             if (audio != null) {
                 updateMusicController()
             }
-        }
-    }
-
-    private fun loadAlbumArt(albumArtUri: String?, imageView: ImageView) {
-        albumArtUri?.let {
-            Glide.with(this)
-                .load(it)
-                .placeholder(R.drawable.music_disk) // Image de remplacement
-                .into(imageView)
         }
     }
 

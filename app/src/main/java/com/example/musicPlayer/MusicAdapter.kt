@@ -1,11 +1,14 @@
 package com.example.musicPlayer
 
+import android.app.Activity
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import java.util.Locale
 
 sealed class Item (open val id: Long) {
@@ -42,11 +45,13 @@ class MusicAdapter(private val items: MutableList<Item>, private val onItemClick
         private val title: TextView = itemView.findViewById(R.id.title)
         private val artist: TextView = itemView.findViewById(R.id.artist)
         private val duration: TextView = itemView.findViewById(R.id.duration)
+        private val image: ImageView = itemView.findViewById(R.id.albumImage)
 
         fun bind(item: Item.RealItem, musicAdapter: MusicAdapter) {
             title.text = item.title
             artist.text = item.artist
             duration.text = formatDuration(item.duration)
+            MainActivity.loadAlbumArt(item.albumArtUri, image, R.drawable.music)
 
             // Changer l'apparence de l'élément sélectionné
             if (item.id == musicAdapter.selectedAudioId) {

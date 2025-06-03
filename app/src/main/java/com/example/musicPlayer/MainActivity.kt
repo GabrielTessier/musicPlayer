@@ -1,6 +1,7 @@
 package com.example.musicPlayer
 
 import android.Manifest
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.ContentUris
 import android.content.Context
@@ -18,6 +19,9 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import android.content.res.ColorStateList
+import android.graphics.drawable.Drawable
+import android.widget.ImageView
+import com.bumptech.glide.Glide
 
 class MainActivity : ComponentActivity() {
     var audioFiles : ArrayList<AudioFile> = ArrayList()
@@ -29,6 +33,25 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val SONG_VIEW = 0
         const val PLAYLIST_VIEW = 1
+
+        var main: MainActivity? = null
+
+        fun loadAlbumArt(albumArtUri: String?, imageView: ImageView, placeholder: Drawable) {
+            albumArtUri?.let {
+                Glide.with(main!!)
+                    .load(it)
+                    .placeholder(placeholder) // Image de remplacement
+                    .into(imageView)
+            }
+        }
+        fun loadAlbumArt(albumArtUri: String?, imageView: ImageView, placeholder: Int) {
+            albumArtUri?.let {
+                Glide.with(main!!)
+                    .load(it)
+                    .placeholder(placeholder) // Image de remplacement
+                    .into(imageView)
+            }
+        }
     }
 
     private val receiver = object : BroadcastReceiver() {
@@ -48,6 +71,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        if (main == null) main = this
+        else finish()
 
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("ACTION_FROM_SERVICE"))
 
