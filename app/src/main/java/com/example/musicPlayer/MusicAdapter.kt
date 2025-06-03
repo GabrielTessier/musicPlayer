@@ -1,14 +1,11 @@
 package com.example.musicPlayer
 
 import android.graphics.Color
-import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.parcelize.Parcelize
-import java.util.ArrayList
 import java.util.Locale
 
 sealed class Item (open val id: Long) {

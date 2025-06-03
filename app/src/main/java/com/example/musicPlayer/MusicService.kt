@@ -39,6 +39,7 @@ class MusicService : Service() {
         const val CHANNEL_ID = "MusicPlayerChannel"
         const val NOTIFICATION_ID = 1
         var isServiceRunning: Boolean = false
+        var isPlaying: Boolean = false
     }
 
     private val binder = LocalBinder()
@@ -144,6 +145,7 @@ class MusicService : Service() {
 
     fun startMusic() {
         mediaPlayer?.start()
+        isPlaying = true
         handler.removeCallbacks(updateProgress)
         handler.post(updateProgress)
         updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
@@ -151,6 +153,7 @@ class MusicService : Service() {
 
     fun pauseMusic() {
         mediaPlayer?.pause()
+        isPlaying = false
         handler.removeCallbacks(updateProgress)
         updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)
     }
@@ -207,6 +210,7 @@ class MusicService : Service() {
         mediaPlayer = null
         mediaSession.release()
         isServiceRunning = false
+        isPlaying = false
         handler.removeCallbacksAndMessages(null)
     }
 }

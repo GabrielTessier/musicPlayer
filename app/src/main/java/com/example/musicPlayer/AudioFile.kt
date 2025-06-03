@@ -13,8 +13,9 @@ data class AudioFile(
     val data: String
 ) : Parcelable
 
+@Parcelize
 data class Playlist(
     val id: Long,
     val name: String,
     val audios: MutableList<AudioFile>
-)
+) : Parcelable

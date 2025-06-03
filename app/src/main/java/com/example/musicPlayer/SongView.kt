@@ -30,7 +30,9 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
                     onMusicServiceConnect()
                 }
             } else {
-                MusicController(main) {}
+                MusicController(main) {
+                    onMusicServiceConnect()
+                }
             }
         updateItemList(main.audioFiles)
         musicAdapter = MusicAdapter(items) { audioFile ->
@@ -88,6 +90,16 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
 
         recyclerView.adapter = musicAdapter
 
+        if (MusicService.isPlaying) {
+            val audioFiles = musicController.musicService?.audioFiles
+            if (audioFiles != null) {
+                val index = musicController.musicService?.currentAudioIndex ?: 0
+                val audio = audioFiles[index]
+                musicAdapter.setSelectedAudioId(audio.id, index)
+            }
+        }
+        musicController.update()
+
         toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
     }
 
@@ -100,7 +112,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
         }
     }
 
-    override fun onMusicServiceConnect() {
+    private fun onMusicServiceConnect() {
         toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
         if (musicController.musicService?.mediaPlayer?.isPlaying == true) {
             val index = musicController.musicService?.currentAudioIndex?:0

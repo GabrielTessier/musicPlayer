@@ -1,11 +1,14 @@
 package com.example.musicPlayer
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -14,20 +17,46 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
     private lateinit var recyclerView: RecyclerView
     private var scrollY: Int = 0
 
-    private val playlistManager: PlaylistManager
+    private lateinit var playlistManager: PlaylistManager
     private lateinit var playlistAdapter: PlaylistAdapter
 
     private lateinit var items: MutableList<PlaylistItem>
 
     private lateinit var buttonPlus: Button
 
+    private val resultLauncher = main.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            if (data != null) {
+                val delete: Boolean = data.getBooleanExtra("delete", false)
+                if (delete) {
+                    val id: Long = data.getLongExtra("id", 0)
+                    val index = playlistManager.getPlaylists().indexOfFirst { it.id == id }
+                    playlistManager.deletePlaylistById(id)
+                    items.removeAt(index)
+                    playlistAdapter.notifyItemRemoved(index)
+                }
+            }
+        }
+    }
+
+    private fun openPlaylistActivity(playlist: Playlist) {
+        val intent = Intent(main, PlaylistActivity::class.java).apply {
+            putExtra("playlist", playlist)
+        }
+        resultLauncher.launch(intent)
+    }
+
     init {
         playlistManager = PlaylistManager(main) { playlists ->
             updateItemList(playlists)
-            playlistAdapter = PlaylistAdapter(items) { playlist ->
-                val index = playlists.indexOfFirst { it.id == playlist.id }
+            playlistAdapter = PlaylistAdapter(items) { playlistItem ->
+                val index = playlists.indexOfFirst { it.id == playlistItem.id }
+                val playlist = playlists[index]
                 // Mettre à jour l'ID de la playlist
                 playlistAdapter.setSelectedAudioId(playlist.id, index)
+
+                openPlaylistActivity(playlist)
             }
         }
     }
@@ -84,10 +113,6 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
         }
     }
 
-    override fun onMusicServiceConnect() {
-        //TODO("Not yet implemented")
-    }
-
     override fun onUpdateAddSong(position: Int) {
         //TODO("Not yet implemented")
     }
@@ -136,7 +161,6 @@ class PlaylistAdapter(private val items: MutableList<PlaylistItem>, private val 
             }
 
             itemView.setOnClickListener {
-                // Met à jour l'apparence de la précédente musique
                 playlistAdapter.onItemClick(item)
                 playlistAdapter.selectedPlaylistId = item.id
             }

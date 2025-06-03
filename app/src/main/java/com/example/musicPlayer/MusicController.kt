@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import android.support.v4.media.session.PlaybackStateCompat
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
@@ -28,7 +27,6 @@ class MusicController (private var activity: ComponentActivity, private val onMu
     private lateinit var textTotalTime: TextView
     private lateinit var textCardTitle: TextView
 
-    private var musicServiceIntent: Intent? = null
     var musicService: MusicService? = null
     private var isBound = false
 
@@ -39,12 +37,17 @@ class MusicController (private var activity: ComponentActivity, private val onMu
             val binder = service as MusicService.LocalBinder
             musicService = binder.getService()
             isBound = true
+            update()
             onMusicServiceConnect()
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
             isBound = false
         }
+    }
+
+    companion object {
+        var musicServiceIntent: Intent? = null
     }
 
     init {
@@ -141,24 +144,22 @@ class MusicController (private var activity: ComponentActivity, private val onMu
     }
 
     fun update() {
-        updatePlayButton()
-        updateSeekBar()
-        updateTextDuration()
-        updateTextTitle()
+        if (isBound) {
+            updatePlayButton()
+            updateSeekBar()
+            updateTextDuration()
+            updateTextTitle()
+        }
     }
 
     private fun startMusic() {
-        musicService?.mediaPlayer?.start()
-        musicService?.updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
-        updateSeekBar()
-        updatePlayButton()
+        musicService?.startMusic()
+        update()
     }
 
     private fun pauseMusic() {
-        musicService?.mediaPlayer?.pause()
-        musicService?.updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)
-        updateSeekBar()
-        updatePlayButton()
+        musicService?.pauseMusic()
+        update()
     }
 
     private fun previousMusic() {
@@ -198,8 +199,6 @@ class MusicController (private var activity: ComponentActivity, private val onMu
         }
         activity.startService(musicServiceIntent)
 
-        updatePlayButton()
-        updateTextDuration()
-        updateSeekBar()
+        update()
     }
 }

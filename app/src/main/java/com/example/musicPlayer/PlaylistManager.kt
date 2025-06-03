@@ -3,6 +3,7 @@ package com.example.musicPlayer
 import android.content.Context
 import androidx.room.Dao
 import androidx.room.Database
+import androidx.room.Delete
 import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.PrimaryKey
@@ -19,12 +20,12 @@ import kotlinx.coroutines.launch
 class Converters {
     @TypeConverter
     fun fromListLong(value: List<Long>): String {
-        return value.joinToString(",")
+        return if (value.isEmpty()) "" else value.joinToString(",")
     }
 
     @TypeConverter
     fun toListLong(value: String): List<Long> {
-        return value.split(",").map { it.toLong() }
+        return if (value == "") emptyList() else value.split(",").map { it.toLong() }
     }
 }
 
@@ -68,6 +69,12 @@ interface PlaylistDao {
     @Update
     suspend fun update(playlist: PlaylistEntity)
 
+    @Delete
+    suspend fun delete(playlist: PlaylistEntity)
+
+    @Query("DELETE FROM playlistentity WHERE id = :playlistId")
+    suspend fun deleteById(playlistId: Long)
+
     @Query("SELECT * FROM playlistentity")
     suspend fun getAllPlaylists(): List<PlaylistEntity>
 }
@@ -88,15 +95,6 @@ abstract class AppDatabase : RoomDatabase() {
                 INSTANCE = Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "app_database").build()
             }
             return INSTANCE!!
-            /*return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "app_database"
-                ).build()
-                INSTANCE = instance
-                instance
-            }*/
         }
     }
 }
@@ -164,11 +162,38 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
             data = audio.data
         )
     }
+    private fun playlistToPlaylistEntity(playlist: Playlist): PlaylistEntity {
+        return PlaylistEntity(
+            id = playlist.id,
+            name = playlist.name,
+            audiosId = playlist.audios.map { it.id }
+        )
+    }
 
     fun createPlaylist(name: String): Playlist {
         val newPlaylist = Playlist(System.currentTimeMillis(), name, mutableListOf())
         playlists.add(newPlaylist)
+
+        val db = AppDatabase.getDatabase(context)
+        val playlistDao = db.playlistDao()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            playlistDao.insert(playlistToPlaylistEntity(newPlaylist))
+        }
+
         return newPlaylist
+    }
+
+    fun deletePlaylistById(id: Long) {
+        val index = playlists.indexOfFirst { it.id == id }
+        if (index != -1) {
+            playlists.removeAt(index)
+            val db = AppDatabase.getDatabase(context)
+            val playlistDao = db.playlistDao()
+            CoroutineScope(Dispatchers.IO).launch {
+                playlistDao.deleteById(id)
+            }
+        }
     }
 
     fun addAudioToPlaylist(playlistId: Long, audio: AudioFile) {

@@ -209,7 +209,12 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         //musicController.onStop()
+        songView.onDestroy()
+        playlistView.onDestroy()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
-        //if (musicController.musicServiceIntent != null && musicController.musicService?.mediaPlayer?.isPlaying == false) stopService(musicController.musicServiceIntent)
+
+        if (MusicController.musicServiceIntent != null && !MusicService.isPlaying) {
+            stopService(MusicController.musicServiceIntent)
+        }
     }
 }
