@@ -1,6 +1,8 @@
 package com.example.musicPlayer
 
 import android.content.Context
+import android.provider.MediaStore.Audio
+import android.util.Log
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
@@ -54,11 +56,14 @@ interface AudioDao {
     @Update
     suspend fun update(audio: AudioEntity)
 
+    @Query("DELETE FROM audioentity WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Query("SELECT * FROM audioentity")
     suspend fun getAllAudios(): List<AudioEntity>
 
     @Query("SELECT * FROM audioentity WHERE id=:id LIMIT 1")
-    suspend fun getAudioById(id: Long): AudioEntity
+    suspend fun getAudioById(id: Long): AudioEntity?
 }
 
 @Dao
@@ -101,27 +106,37 @@ abstract class AppDatabase : RoomDatabase() {
 
 class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<Playlist>) -> Unit) {
 
-    private val playlists = mutableListOf<Playlist>()
+    companion object {
+        private val playlists = mutableListOf<Playlist>()
+        private var firstLoad = true
+    }
+
     var loadFinish = false
 
     init {
         // Obtenez une instance de la base de données
-        val db = AppDatabase.getDatabase(context)
-        val playlistDao = db.playlistDao()
-        val scope = CoroutineScope(Dispatchers.IO)
-        val job = scope.launch {
-            val playlistsEntity = playlistDao.getAllPlaylists()
-            playlistsEntity.forEach { playlist ->
-                playlists.add(
-                    Playlist(
-                        id = playlist.id,
-                        name = playlist.name,
-                        audios = getAudios(playlist.audiosId)
+        if (firstLoad) {
+            firstLoad = false
+            val db = AppDatabase.getDatabase(context)
+            val playlistDao = db.playlistDao()
+            val scope = CoroutineScope(Dispatchers.IO)
+            val job = scope.launch {
+                val playlistsEntity = playlistDao.getAllPlaylists()
+                playlistsEntity.forEach { playlist ->
+                    playlists.add(
+                        Playlist(
+                            id = playlist.id,
+                            name = playlist.name,
+                            audios = getAudiosListById(playlist.audiosId)
+                        )
                     )
-                )
+                }
             }
-        }
-        job.invokeOnCompletion {
+            job.invokeOnCompletion {
+                loadFinish = true
+                onLoadFinish(playlists)
+            }
+        } else {
             loadFinish = true
             onLoadFinish(playlists)
         }
@@ -131,13 +146,15 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
         return playlists
     }
 
-    private suspend fun getAudios(audiosId: List<Long>): MutableList<AudioFile> {
+    private suspend fun getAudiosListById(audiosId: List<Long>): MutableList<AudioFile> {
         val audioList: MutableList<AudioFile> = mutableListOf<AudioFile>()
         val db = AppDatabase.getDatabase(context)
         val audioDao = db.audioDao()
         for (id in audiosId) {
-            val audioEntity: AudioEntity = audioDao.getAudioById(id)
-            audioList.add(audioEntityToAudioFile(audioEntity))
+            val audioEntity: AudioEntity? = audioDao.getAudioById(id)
+            if (audioEntity != null) {
+                audioList.add(audioEntityToAudioFile(audioEntity))
+            }
         }
         return audioList
     }
@@ -196,17 +213,25 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
         }
     }
 
+    private suspend fun addAudio(audio: AudioEntity) {
+        val db = AppDatabase.getDatabase(context)
+        val audioDao = db.audioDao()
+        val audioDb: AudioEntity? = audioDao.getAudioById(audio.id)
+        if (audioDb == null) {
+            audioDao.insert(audio)
+        }
+    }
+
     fun addAudioToPlaylist(playlistId: Long, audio: AudioFile) {
         val playlist = playlists.find { it.id == playlistId }
         playlist?.audios?.add(audio)
 
         val db = AppDatabase.getDatabase(context)
-        val audioDao = db.audioDao()
         val playlistDao = db.playlistDao()
 
         CoroutineScope(Dispatchers.IO).launch {
             // Insérer la piste audio
-            audioDao.insert(audioFileToAudioEntity(audio))
+            addAudio(audioFileToAudioEntity(audio))
 
             // Mettre à jour la playlist
             playlist?.let { pl ->

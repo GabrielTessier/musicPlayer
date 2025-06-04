@@ -26,7 +26,7 @@ sealed class Item (open val id: Long) {
     ) : Item(id)
 }
 
-class MusicAdapter(private val items: MutableList<Item>, private val onItemClick: (Item.RealItem) -> Unit) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class MusicAdapter(private val activity: Activity, private val items: MutableList<Item>, private val onItemClick: (Item.RealItem) -> Unit) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     var selectedAudioId: Long? = null
 
@@ -41,7 +41,7 @@ class MusicAdapter(private val items: MutableList<Item>, private val onItemClick
         }
     }
 
-    class MusicViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class MusicViewHolder(private val activity: Activity, itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val title: TextView = itemView.findViewById(R.id.title)
         private val artist: TextView = itemView.findViewById(R.id.artist)
         private val duration: TextView = itemView.findViewById(R.id.duration)
@@ -51,7 +51,7 @@ class MusicAdapter(private val items: MutableList<Item>, private val onItemClick
             title.text = item.title
             artist.text = item.artist
             duration.text = formatDuration(item.duration)
-            MainActivity.loadAlbumArt(item.albumArtUri, image, R.drawable.music)
+            Utils.loadAlbumArt(activity, item.albumArtUri, image, R.drawable.music)
 
             // Changer l'apparence de l'élément sélectionné
             if (item.id == musicAdapter.selectedAudioId) {
@@ -82,7 +82,7 @@ class MusicAdapter(private val items: MutableList<Item>, private val onItemClick
         return when (viewType) {
             VIEW_TYPE_REAL -> {
                 val view = LayoutInflater.from(parent.context).inflate(R.layout.item_music, parent, false)
-                MusicViewHolder(view)
+                MusicViewHolder(activity, view)
             }
             VIEW_TYPE_FAKE -> {
                 val view = LayoutInflater.from(parent.context).inflate(R.layout.fake_item, parent, false)

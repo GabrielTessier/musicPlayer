@@ -50,7 +50,7 @@ class MusicActivity : ComponentActivity() {
                 textDuration.text = musicController?.formatTime(audio.duration)
 
                 val imageView = findViewById<ImageView>(R.id.image)
-                MainActivity.loadAlbumArt(audio.albumArtUri, imageView, R.drawable.music_disk)
+                Utils.loadAlbumArt(this, audio.albumArtUri, imageView, R.drawable.music_disk)
             }
         }
         musicController?.update()

@@ -35,7 +35,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
                 }
             }
         updateItemList(main.audioFiles)
-        musicAdapter = MusicAdapter(items) { audioFile ->
+        musicAdapter = MusicAdapter(main, items) { audioFile ->
             // Gérer la lecture de l'audio ici
             val index = main.audioFiles.indexOfFirst { it.id == audioFile.id }
             musicController.playAudio(main.audioFiles, index)

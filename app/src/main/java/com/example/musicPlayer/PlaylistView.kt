@@ -3,6 +3,7 @@ package com.example.musicPlayer
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,13 +29,15 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
         if (result.resultCode == Activity.RESULT_OK) {
             val data: Intent? = result.data
             if (data != null) {
+                val id: Long = data.getLongExtra("id", 0)
+                val index = playlistManager.getPlaylists().indexOfFirst { it.id == id }
                 val delete: Boolean = data.getBooleanExtra("delete", false)
                 if (delete) {
-                    val id: Long = data.getLongExtra("id", 0)
-                    val index = playlistManager.getPlaylists().indexOfFirst { it.id == id }
                     playlistManager.deletePlaylistById(id)
                     items.removeAt(index)
                     playlistAdapter.notifyItemRemoved(index)
+                } else {
+                    updateItem(index)
                 }
             }
         }
@@ -59,6 +62,16 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
                 openPlaylistActivity(playlist)
             }
         }
+    }
+
+    private fun updateItem(index: Int) {
+        val playlist = playlistManager.getPlaylist(items[index].id)!!
+        items[index] = PlaylistItem.RealItem(
+            id = playlist.id,
+            name = playlist.name,
+            audios = playlist.audios
+        )
+        playlistAdapter.notifyItemChanged(index)
     }
 
     fun updateItemList(playlists: List<Playlist>) {

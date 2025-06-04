@@ -1,7 +1,6 @@
 package com.example.musicPlayer
 
 import android.Manifest
-import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.ContentUris
 import android.content.Context
@@ -19,40 +18,20 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import android.content.res.ColorStateList
-import android.graphics.drawable.Drawable
-import android.widget.ImageView
-import com.bumptech.glide.Glide
 
 class MainActivity : ComponentActivity() {
-    var audioFiles : ArrayList<AudioFile> = ArrayList()
-
-    private var view: Int = SONG_VIEW
-    private lateinit var songView: SongView
-    private lateinit var playlistView: PlaylistView
-
     companion object {
         const val SONG_VIEW = 0
         const val PLAYLIST_VIEW = 1
 
         var main: MainActivity? = null
-
-        fun loadAlbumArt(albumArtUri: String?, imageView: ImageView, placeholder: Drawable) {
-            albumArtUri?.let {
-                Glide.with(main!!)
-                    .load(it)
-                    .placeholder(placeholder) // Image de remplacement
-                    .into(imageView)
-            }
-        }
-        fun loadAlbumArt(albumArtUri: String?, imageView: ImageView, placeholder: Int) {
-            albumArtUri?.let {
-                Glide.with(main!!)
-                    .load(it)
-                    .placeholder(placeholder) // Image de remplacement
-                    .into(imageView)
-            }
-        }
     }
+
+    var audioFiles : ArrayList<AudioFile> = ArrayList()
+
+    private var view: Int = SONG_VIEW
+    private lateinit var songView: SongView
+    private lateinit var playlistView: PlaylistView
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
