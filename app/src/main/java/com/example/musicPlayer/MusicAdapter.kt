@@ -5,8 +5,10 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 
 sealed class Item (open val id: Long) {
@@ -32,6 +34,8 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
     private var selectedColor: Int = Color.LTGRAY
     private var lastSelectedColor: Int = Color.LTGRAY
 
+    private var isMenuButtonHide: Boolean = false
+
     companion object {
         private const val VIEW_TYPE_REAL = 1
         private const val VIEW_TYPE_FAKE = 2
@@ -56,6 +60,11 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
                 itemView.setBackgroundColor(musicAdapter.selectedColor)
             } else {
                 itemView.setBackgroundColor(Color.TRANSPARENT)
+            }
+
+            if (musicAdapter.isMenuButtonHide) {
+                val button: ImageButton = itemView.findViewById(R.id.menuButton)
+                button.visibility = View.GONE
             }
 
             itemView.setOnClickListener {
@@ -134,5 +143,9 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
     }
     fun setLastSelectedColor(color: Int) {
         lastSelectedColor = color
+    }
+
+    fun hideMenuButton() {
+        isMenuButtonHide = true
     }
 }

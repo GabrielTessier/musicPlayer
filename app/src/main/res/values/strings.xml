@@ -11,4 +11,5 @@
     <string name="separateur_nom_durer">" \u25CF "</string>
     <string name="song">Musique</string>
     <string name="playlist">Playlist</string>
+    <string name="menu_option">Menu</string>
 </resources>

@@ -42,6 +42,7 @@ class SelectMusicActivity : ComponentActivity() {
         }
         musicAdapter.setSelectedColor(Color.LTGRAY)
         musicAdapter.setLastSelectedColor(Color.GRAY)
+        musicAdapter.hideMenuButton()
         recyclerView.adapter = musicAdapter
 
         val btnAnnule = findViewById<Button>(R.id.btnAnnule)
