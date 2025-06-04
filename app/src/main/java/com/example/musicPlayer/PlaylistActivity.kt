@@ -3,7 +3,6 @@ package com.example.musicPlayer
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
@@ -61,8 +60,7 @@ class PlaylistActivity : ComponentActivity() {
         recyclerView = findViewById(R.id.musics)
         recyclerView.layoutManager = LinearLayoutManager(this)
         updateItemList(playlist.audios)
-        musicAdapter = MusicAdapter(this, 0, items) { audioFile ->
-        }
+        musicAdapter = MusicAdapter(this, 0, items) { }
         recyclerView.adapter = musicAdapter
 
         val btnRetour = findViewById<Button>(R.id.btnRetour)
@@ -105,13 +103,6 @@ class PlaylistActivity : ComponentActivity() {
     private fun updateNbElem() {
         val textNbElem = findViewById<TextView>(R.id.nbElem)
         textNbElem.text = String.format(Locale.FRANCE, "Nombre d'élément : %d", playlist.audios.size)
-    }
-
-    fun addMusic(audio: AudioFile) {
-        playlistManager.addAudioToPlaylist(playlistId = playlist.id, audio = audio)
-        playlist = playlistManager.getPlaylistById(playlistId = playlist.id)!!
-        addItem(audio)
-        updateNbElem()
     }
 
     override fun finish() {

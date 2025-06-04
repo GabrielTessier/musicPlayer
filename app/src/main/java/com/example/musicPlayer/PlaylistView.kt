@@ -73,7 +73,7 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
         playlistAdapter.notifyItemChanged(index)
     }
 
-    fun updateItemList(playlists: List<Playlist>) {
+    private fun updateItemList(playlists: List<Playlist>) {
         items = MutableList(playlists.size+1) { index: Int ->
             if (index != playlists.size) {
                 val playlist = playlists[index]
@@ -88,7 +88,7 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
         }
     }
 
-    fun addItemList(playlist: Playlist) {
+    private fun addItemList(playlist: Playlist) {
         items.add(items.size-1,
             PlaylistItem.RealItem(
                 id = playlist.id,

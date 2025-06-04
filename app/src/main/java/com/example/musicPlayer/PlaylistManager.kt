@@ -109,7 +109,7 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
         private var firstLoad = true
     }
 
-    var loadFinish = false
+    private var loadFinish = false
 
     init {
         // Obtenez une instance de la base de données
@@ -148,7 +148,7 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
     }
 
     private suspend fun getAudiosListById(audiosId: List<Long>): MutableList<AudioFile> {
-        val audioList: MutableList<AudioFile> = mutableListOf<AudioFile>()
+        val audioList: MutableList<AudioFile> = mutableListOf()
         val db = AppDatabase.getDatabase(context)
         val audioDao = db.audioDao()
         for (id in audiosId) {

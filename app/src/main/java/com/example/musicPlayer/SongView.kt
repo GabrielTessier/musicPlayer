@@ -1,13 +1,11 @@
 package com.example.musicPlayer
 
 import android.content.Intent
-import android.graphics.Color
 import android.view.View
 import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.util.Util
 import kotlin.collections.ArrayList
 
 class SongView(private val main: MainActivity): com.example.musicPlayer.View {
@@ -39,7 +37,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
         updateItemList(main.audioFiles)
         musicAdapter = MusicAdapter(main, 1, items) { audioFile ->
             // Gérer la lecture de l'audio ici
-            if (musicAdapter.lastSelectedAudioId != audioFile.id) {
+            if (musicAdapter.getLastSelectedAudioId() != audioFile.id) {
                 val index = main.audioFiles.indexOfFirst { it.id == audioFile.id }
                 musicController.playAudio(main.audioFiles, index)
                 // Mettre à jour l'ID de la musique actuellement jouée
@@ -113,7 +111,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
         toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
         if (musicController.musicService?.mediaPlayer?.isPlaying == true) {
             val index = musicController.musicService?.currentAudioIndex?:0
-            musicAdapter.lastSelectedAudioId = main.audioFiles[index].id
+            musicAdapter.setSelectedAudioId(main.audioFiles[index].id)
         }
     }
 

@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -15,7 +14,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class MusicActivity : ComponentActivity() {
 
-    lateinit var audioFiles: ArrayList<AudioFile>
+    private lateinit var audioFiles: ArrayList<AudioFile>
     private var musicController: MusicController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {

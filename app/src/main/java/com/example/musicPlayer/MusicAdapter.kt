@@ -27,7 +27,7 @@ sealed class Item (open val id: Long) {
 class MusicAdapter(private val activity: Activity, private val maxSelected: Int, private val items: MutableList<Item>, private val onItemClick: (Item.RealItem) -> Unit) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var selectedAudioIdList: ArrayList<Long> = arrayListOf()
-    var lastSelectedAudioId: Long? = null
+    private var lastSelectedAudioId: Long? = null
 
     private var selectedColor: Int = Color.LTGRAY
     private var lastSelectedColor: Int = Color.LTGRAY
@@ -59,9 +59,7 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
             }
 
             itemView.setOnClickListener {
-                // Met à jour l'apparence de la précédente musique
                 musicAdapter.onItemClick(item)
-                //musicAdapter.lastSelectedAudioId = item.id
             }
         }
     }
@@ -98,6 +96,10 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
     }
 
     override fun getItemCount(): Int = items.size
+
+    fun getLastSelectedAudioId(): Long? {
+        return lastSelectedAudioId
+    }
 
     fun setSelectedAudioId(audioId: Long?) {
         val previousIndex = items.indexOfFirst { it.id == lastSelectedAudioId } // indice à passer de lastSelected à selected
