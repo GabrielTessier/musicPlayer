@@ -8,8 +8,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import java.util.Locale
 
 sealed class Item (open val id: Long) {
     data class RealItem(
@@ -26,19 +24,17 @@ sealed class Item (open val id: Long) {
     ) : Item(id)
 }
 
-class MusicAdapter(private val activity: Activity, private val items: MutableList<Item>, private val onItemClick: (Item.RealItem) -> Unit) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class MusicAdapter(private val activity: Activity, private val maxSelected: Int, private val items: MutableList<Item>, private val onItemClick: (Item.RealItem) -> Unit) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    var selectedAudioId: Long? = null
+    private var selectedAudioIdList: ArrayList<Long> = arrayListOf()
+    var lastSelectedAudioId: Long? = null
+
+    private var selectedColor: Int = Color.LTGRAY
+    private var lastSelectedColor: Int = Color.LTGRAY
 
     companion object {
         private const val VIEW_TYPE_REAL = 1
         private const val VIEW_TYPE_FAKE = 2
-
-        fun formatDuration(duration: Long): String {
-            val minutes = (duration / 1000) / 60
-            val seconds = (duration / 1000) % 60
-            return String.format(Locale.FRANCE, "%02d:%02d", minutes, seconds)
-        }
     }
 
     class MusicViewHolder(private val activity: Activity, itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -50,12 +46,14 @@ class MusicAdapter(private val activity: Activity, private val items: MutableLis
         fun bind(item: Item.RealItem, musicAdapter: MusicAdapter) {
             title.text = item.title
             artist.text = item.artist
-            duration.text = formatDuration(item.duration)
+            duration.text = Utils.formatDuration(item.duration)
             Utils.loadAlbumArt(activity, item.albumArtUri, image, R.drawable.music)
 
             // Changer l'apparence de l'élément sélectionné
-            if (item.id == musicAdapter.selectedAudioId) {
-                itemView.setBackgroundColor(Color.LTGRAY)
+            if (item.id == musicAdapter.lastSelectedAudioId) {
+                itemView.setBackgroundColor(musicAdapter.lastSelectedColor)
+            } else if (musicAdapter.selectedAudioIdList.any { it == item.id }) {
+                itemView.setBackgroundColor(musicAdapter.selectedColor)
             } else {
                 itemView.setBackgroundColor(Color.TRANSPARENT)
             }
@@ -63,7 +61,7 @@ class MusicAdapter(private val activity: Activity, private val items: MutableLis
             itemView.setOnClickListener {
                 // Met à jour l'apparence de la précédente musique
                 musicAdapter.onItemClick(item)
-                musicAdapter.selectedAudioId = item.id
+                //musicAdapter.lastSelectedAudioId = item.id
             }
         }
     }
@@ -101,10 +99,38 @@ class MusicAdapter(private val activity: Activity, private val items: MutableLis
 
     override fun getItemCount(): Int = items.size
 
-    fun setSelectedAudioId(audioId: Long, index: Int) {
-        val indexOld = items.indexOfFirst { it.id == selectedAudioId }
-        selectedAudioId = audioId
-        notifyItemChanged(indexOld)
-        notifyItemChanged(index)
+    fun setSelectedAudioId(audioId: Long?) {
+        val previousIndex = items.indexOfFirst { it.id == lastSelectedAudioId } // indice à passer de lastSelected à selected
+        lastSelectedAudioId = audioId
+        notifyItemChanged(previousIndex)
+        if (audioId != null) {
+            if (maxSelected > 0 && !selectedAudioIdList.any { it == audioId }) {
+                selectedAudioIdList.add(audioId)
+                val index = items.indexOfFirst { it.id == audioId } // indice à sélectionner
+                notifyItemChanged(index)
+                if (selectedAudioIdList.size == maxSelected + 1) {
+                    val indexSup = items.indexOfFirst { it.id == selectedAudioIdList[0] }  // indice à désélectionner
+                    selectedAudioIdList.removeAt(0)
+                    notifyItemChanged(indexSup)
+                }
+            }
+        }
+    }
+
+    fun unsetSelectedAudioId(audioId: Long) {
+        val indexLast = items.indexOfFirst { it.id == lastSelectedAudioId }
+        val indexInBuffer = selectedAudioIdList.indexOfFirst { it == audioId }
+        lastSelectedAudioId = null
+        selectedAudioIdList.removeAt(indexInBuffer)
+        val indexInItemList = items.indexOfFirst { it.id == audioId }
+        notifyItemChanged(indexInItemList)
+        if (indexLast != indexInItemList) notifyItemChanged(indexLast)
+    }
+
+    fun setSelectedColor(color: Int) {
+        selectedColor = color
+    }
+    fun setLastSelectedColor(color: Int) {
+        lastSelectedColor = color
     }
 }

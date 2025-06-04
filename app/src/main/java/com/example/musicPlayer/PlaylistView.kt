@@ -3,7 +3,6 @@ package com.example.musicPlayer
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -65,7 +64,7 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
     }
 
     private fun updateItem(index: Int) {
-        val playlist = playlistManager.getPlaylist(items[index].id)!!
+        val playlist = playlistManager.getPlaylistById(items[index].id)!!
         items[index] = PlaylistItem.RealItem(
             id = playlist.id,
             name = playlist.name,

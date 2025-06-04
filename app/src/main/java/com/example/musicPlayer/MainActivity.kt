@@ -2,7 +2,6 @@ package com.example.musicPlayer
 
 import android.Manifest
 import android.content.BroadcastReceiver
-import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -16,7 +15,6 @@ import android.widget.Button
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import android.content.res.ColorStateList
 
 class MainActivity : ComponentActivity() {
@@ -36,10 +34,10 @@ class MainActivity : ComponentActivity() {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val audio = intent?.getParcelableExtra("audio", AudioFile::class.java)
-            val audioIndex = intent?.getIntExtra("audioIndex", 0)
+            //val audioIndex = intent?.getIntExtra("audioIndex", 0)
             if (audio != null) {
                 if (view == SONG_VIEW) {
-                    songView.musicAdapter.setSelectedAudioId(audio.id, audioIndex ?: 0)
+                    songView.musicAdapter.setSelectedAudioId(audio.id)
                 } else if (view == PLAYLIST_VIEW) {
                     // Rien pour l'instant
                 }
@@ -191,7 +189,7 @@ class MainActivity : ComponentActivity() {
                 val albumId = it.getLong(albumIdColumn)
 
                 if (duration != 0L) {
-                    val albumArtUri = getAlbumArtUri(albumId)
+                    val albumArtUri = Utils.getAlbumArtUri(albumId)
                     val audioFile = AudioFile(
                         id = id,
                         title = title,
@@ -204,11 +202,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    private fun getAlbumArtUri(albumId: Long): String {
-        val albumArtUri = "content://media/external/audio/albumart".toUri()
-        return ContentUris.withAppendedId(albumArtUri, albumId).toString()
     }
 
     override fun onDestroy() {

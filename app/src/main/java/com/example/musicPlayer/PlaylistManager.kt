@@ -1,8 +1,6 @@
 package com.example.musicPlayer
 
 import android.content.Context
-import android.provider.MediaStore.Audio
-import android.util.Log
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
@@ -145,6 +143,9 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
     fun getPlaylists(): MutableList<Playlist> {
         return playlists
     }
+    fun getPlaylistById(playlistId: Long): Playlist? {
+        return playlists.find { it.id == playlistId }
+    }
 
     private suspend fun getAudiosListById(audiosId: List<Long>): MutableList<AudioFile> {
         val audioList: MutableList<AudioFile> = mutableListOf<AudioFile>()
@@ -243,9 +244,5 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
                 playlistDao.update(playlistEntity)
             }
         }
-    }
-
-    fun getPlaylist(playlistId: Long): Playlist? {
-        return playlists.find { it.id == playlistId }
     }
 }

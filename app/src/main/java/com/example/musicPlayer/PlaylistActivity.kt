@@ -3,11 +3,11 @@ package com.example.musicPlayer
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.provider.MediaStore.Audio
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
@@ -18,10 +18,33 @@ class PlaylistActivity : ComponentActivity() {
     private lateinit var playlist: Playlist
 
     private lateinit var recyclerView: RecyclerView
-    lateinit var musicAdapter: MusicAdapter
+    private lateinit var musicAdapter: MusicAdapter
     private lateinit var items: MutableList<Item>
 
     private var isDelete = false
+
+    private val resultLauncherSelectAddMusic = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            if (data != null) {
+                val validate: Boolean = data.getBooleanExtra("validate", false)
+                if (validate) {
+                    val audioList: ArrayList<AudioFile> = data.getParcelableArrayListExtra("audioList", AudioFile::class.java)?: arrayListOf()
+                    for (audio in audioList) {
+                        playlistManager.addAudioToPlaylist(playlist.id, audio)
+                        addItem(audio)
+                    }
+                    playlist = playlistManager.getPlaylistById(playlistId = playlist.id)!!
+                    updateNbElem()
+                }
+            }
+        }
+    }
+
+    private fun openSelectMusicToAddActivity() {
+        val intent = Intent(this, SelectMusicActivity::class.java)
+        resultLauncherSelectAddMusic.launch(intent)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +61,7 @@ class PlaylistActivity : ComponentActivity() {
         recyclerView = findViewById(R.id.musics)
         recyclerView.layoutManager = LinearLayoutManager(this)
         updateItemList(playlist.audios)
-        musicAdapter = MusicAdapter(this, items) { audioFile ->
+        musicAdapter = MusicAdapter(this, 0, items) { audioFile ->
         }
         recyclerView.adapter = musicAdapter
 
@@ -59,39 +82,20 @@ class PlaylistActivity : ComponentActivity() {
 
         val btnAddMusic = findViewById<Button>(R.id.btnAddMusic)
         btnAddMusic.setOnClickListener {
-            val main:MainActivity? = MainActivity.main
-            if (main != null) {
-                addMusic(main.audioFiles[0])
-            }
+            openSelectMusicToAddActivity()
         }
     }
 
     private fun addItem(audio: AudioFile) {
         val pos = items.size-1
-        items.add(pos,
-            Item.RealItem(
-                id = audio.id,
-                title = audio.title,
-                artist = audio.artist,
-                duration = audio.duration,
-                albumArtUri = audio.albumArtUri,
-                data = audio.data
-            )
-        )
+        items.add(pos, Utils.audioFileToItem(audio))
         musicAdapter.notifyItemInserted(pos)
     }
     private fun updateItemList(audioFiles: List<AudioFile>) {
         items = MutableList(audioFiles.size+1) { index: Int ->
             if (index != audioFiles.size) {
                 val audio = audioFiles[index]
-                Item.RealItem(
-                    id = audio.id,
-                    title = audio.title,
-                    artist = audio.artist,
-                    duration = audio.duration,
-                    albumArtUri = audio.albumArtUri,
-                    data = audio.data
-                )
+                Utils.audioFileToItem(audio)
             } else {
                 Item.FakeItem(-1)
             }
@@ -105,7 +109,7 @@ class PlaylistActivity : ComponentActivity() {
 
     fun addMusic(audio: AudioFile) {
         playlistManager.addAudioToPlaylist(playlistId = playlist.id, audio = audio)
-        playlist = playlistManager.getPlaylist(playlistId = playlist.id)!!
+        playlist = playlistManager.getPlaylistById(playlistId = playlist.id)!!
         addItem(audio)
         updateNbElem()
     }

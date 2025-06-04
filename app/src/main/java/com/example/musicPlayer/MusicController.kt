@@ -15,7 +15,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.ArrayList
-import java.util.Locale
 
 class MusicController (private var activity: ComponentActivity, private val onMusicServiceConnect: () -> Unit) {
     private lateinit var seekBar: SeekBar
@@ -117,7 +116,7 @@ class MusicController (private var activity: ComponentActivity, private val onMu
         seekBar.max = musicService?.mediaPlayer?.duration ?: 0
         if (!isUserSeeking && musicService?.mediaPlayer?.isPlaying == true) {
             seekBar.progress = musicService?.mediaPlayer?.currentPosition?:0
-            textCurrentTime.text = formatTime(musicService?.mediaPlayer?.currentPosition?:0)
+            textCurrentTime.text = Utils.formatTime(musicService?.mediaPlayer?.currentPosition?:0)
         }
     }
 
@@ -129,8 +128,8 @@ class MusicController (private var activity: ComponentActivity, private val onMu
     }
 
     private fun updateTextDuration() {
-        textCurrentTime.text = formatTime(musicService?.mediaPlayer?.currentPosition?:0)
-        textTotalTime.text = formatTime(musicService?.mediaPlayer?.duration?:0)
+        textCurrentTime.text = Utils.formatTime(musicService?.mediaPlayer?.currentPosition?:0)
+        textTotalTime.text = Utils.formatTime(musicService?.mediaPlayer?.duration?:0)
     }
 
     private fun updateTextTitle() {
@@ -180,15 +179,6 @@ class MusicController (private var activity: ComponentActivity, private val onMu
             else it.currentAudioIndex = 0
             it.playCurrentAudio()
         }
-    }
-
-    fun formatTime(milliseconds: Long): String {
-        val minutes = (milliseconds / 1000) / 60
-        val seconds = (milliseconds / 1000) % 60
-        return String.format(Locale.FRANCE, "%d:%02d", minutes, seconds)
-    }
-    fun formatTime(milliseconds: Int): String {
-        return formatTime(milliseconds.toLong())
     }
 
     fun playAudio(audioFiles: List<AudioFile>, initialIndex: Int) {

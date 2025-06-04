@@ -1,11 +1,13 @@
 package com.example.musicPlayer
 
 import android.content.Intent
+import android.graphics.Color
 import android.view.View
 import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.util.Util
 import kotlin.collections.ArrayList
 
 class SongView(private val main: MainActivity): com.example.musicPlayer.View {
@@ -35,13 +37,15 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
                 }
             }
         updateItemList(main.audioFiles)
-        musicAdapter = MusicAdapter(main, items) { audioFile ->
+        musicAdapter = MusicAdapter(main, 1, items) { audioFile ->
             // Gérer la lecture de l'audio ici
-            val index = main.audioFiles.indexOfFirst { it.id == audioFile.id }
-            musicController.playAudio(main.audioFiles, index)
-            // Mettre à jour l'ID de la musique actuellement jouée
-            musicAdapter.setSelectedAudioId(audioFile.id, index)
-            toggleCardViewVisibility(true)
+            if (musicAdapter.lastSelectedAudioId != audioFile.id) {
+                val index = main.audioFiles.indexOfFirst { it.id == audioFile.id }
+                musicController.playAudio(main.audioFiles, index)
+                // Mettre à jour l'ID de la musique actuellement jouée
+                musicAdapter.setSelectedAudioId(audioFile.id)
+                toggleCardViewVisibility(true)
+            }
         }
     }
 
@@ -49,14 +53,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
         items = MutableList(audioFiles.size+1) { index: Int ->
             if (index != audioFiles.size) {
                 val audio = audioFiles[index]
-                Item.RealItem(
-                    id = audio.id,
-                    title = audio.title,
-                    artist = audio.artist,
-                    duration = audio.duration,
-                    albumArtUri = audio.albumArtUri,
-                    data = audio.data
-                )
+                Utils.audioFileToItem(audio)
             } else {
                 Item.FakeItem(-1)
             }
@@ -95,7 +92,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
             if (audioFiles != null) {
                 val index = musicController.musicService?.currentAudioIndex ?: 0
                 val audio = audioFiles[index]
-                musicAdapter.setSelectedAudioId(audio.id, index)
+                musicAdapter.setSelectedAudioId(audio.id)
             }
         }
         musicController.update()
@@ -116,20 +113,13 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
         toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
         if (musicController.musicService?.mediaPlayer?.isPlaying == true) {
             val index = musicController.musicService?.currentAudioIndex?:0
-            musicAdapter.selectedAudioId = main.audioFiles[index].id
+            musicAdapter.lastSelectedAudioId = main.audioFiles[index].id
         }
     }
 
     override fun onUpdateAddSong(position: Int) {
         val audio = main.audioFiles[position]
-        val item = Item.RealItem(
-            id = audio.id,
-            title = audio.title,
-            artist = audio.artist,
-            duration = audio.duration,
-            albumArtUri = audio.albumArtUri,
-            data = audio.data
-        )
+        val item = Utils.audioFileToItem(audio)
         items.add(position, item)
 
         musicAdapter.notifyItemInserted(position)
@@ -139,10 +129,10 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     }
 
     override fun onUpdateAudioFiles() {
-        if (musicAdapter.selectedAudioId != null) {
-            val index = main.audioFiles.indexOfFirst { it.id == musicAdapter.selectedAudioId }
-            musicAdapter.setSelectedAudioId(musicAdapter.selectedAudioId?:0, index)
-        }
+        /*if (musicAdapter.lastSelectedAudioId != null) {
+            val index = main.audioFiles.indexOfFirst { it.id == musicAdapter.lastSelectedAudioId }
+            musicAdapter.setSelectedAudioId(musicAdapter.lastSelectedAudioId?:0, index)
+        }*/
     }
 
     override fun onDestroy() {
