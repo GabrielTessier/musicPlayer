@@ -7,8 +7,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -21,6 +23,10 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
     private lateinit var playlistAdapter: PlaylistAdapter
 
     private lateinit var items: MutableList<PlaylistItem>
+
+    private lateinit var musicController: MusicController
+    private lateinit var musicControlCardView: CardView
+    private lateinit var musicControlLinearLayout: LinearLayout
 
     private lateinit var buttonPlus: Button
 
@@ -62,6 +68,21 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
                 openPlaylistActivity(playlist)
             }
         }
+        //musicController = MusicController(main) { onMusicServiceConnect() }
+        musicController = MusicController(main) {}
+    }
+
+    // Fonction pour afficher ou masquer le CardView
+    private fun toggleCardViewVisibility(show: Boolean) {
+        if (show) {
+            musicControlCardView.visibility = View.VISIBLE  // Afficher le CardView
+        } else {
+            musicControlCardView.visibility = View.GONE  // Masquer le CardView
+        }
+    }
+
+    private fun onMusicServiceConnect() {
+        toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
     }
 
     private fun updateItem(index: Int) {
@@ -100,6 +121,8 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
     }
 
     override fun open() {
+        musicController.reloadVar()
+
         recyclerView = main.findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(main)
         val layoutManager = recyclerView.layoutManager as LinearLayoutManager
@@ -115,6 +138,16 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
         })
 
         recyclerView.adapter = playlistAdapter
+
+        musicControlCardView = main.findViewById(R.id.musicControlCardView)
+        musicControlLinearLayout = main.findViewById(R.id.musicButtonLinearLayout)
+        musicControlLinearLayout.setOnClickListener {
+            val intent = Intent(main, MusicActivity::class.java)
+            main.startActivity(intent)
+        }
+
+        musicController.update()
+        toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
 
         buttonPlus = main.findViewById(R.id.button_plus)
         buttonPlus.setOnClickListener {

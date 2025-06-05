@@ -13,8 +13,6 @@ import androidx.activity.ComponentActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class MusicActivity : ComponentActivity() {
-
-    private lateinit var audioFiles: ArrayList<AudioFile>
     private var musicController: MusicController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,11 +20,6 @@ class MusicActivity : ComponentActivity() {
         setContentView(R.layout.activity_music_desc)
 
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("ACTION_FROM_SERVICE"))
-
-        //audioFiles = intent.getParcelableArrayListExtra("audioFiles", AudioFile::class.java) ?: arrayListOf()
-        val audioFilesMutList = PlaylistManager.getAudioFiles()
-        audioFiles = arrayListOf()
-        audioFilesMutList.forEach { audioFiles.add(it) }
 
         updateMusicController()
 
@@ -42,8 +35,8 @@ class MusicActivity : ComponentActivity() {
     fun updateMusicController() {
         musicController?.onStop()
         musicController = MusicController(this) {
-            musicController?.musicService?.let {
-                val audio = audioFiles[it.currentAudioIndex]
+            musicController?.musicService?.let { service ->
+                val audio = service.audioFiles[service.currentAudioIndex]
                 val textTitle = findViewById<TextView>(R.id.title)
                 textTitle.text = audio.title
                 val textArtist = findViewById<TextView>(R.id.artist)

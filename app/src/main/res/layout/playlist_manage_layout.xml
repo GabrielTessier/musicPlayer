@@ -67,4 +67,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
     </ScrollView>
+
+    <!-- CardView pour les contrôles musicaux -->
+    <androidx.cardview.widget.CardView
+        xmlns:card_view="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/musicControlCardView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        card_view:cardCornerRadius="20dp"
+        card_view:cardElevation="4dp"
+        android:background="@color/grey"
+        android:layout_margin="16dp">
+
+        <include
+            android:id="@+id/music_button_control"
+            layout="@layout/music_button_control"/>
+    </androidx.cardview.widget.CardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

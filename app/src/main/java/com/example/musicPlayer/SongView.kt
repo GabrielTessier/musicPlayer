@@ -6,13 +6,12 @@ import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlin.collections.ArrayList
 
 class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     private lateinit var recyclerView: RecyclerView
     private var scrollY: Int = 0
     lateinit var musicAdapter: MusicAdapter
-    private lateinit var musicController: MusicController
+    private var musicController: MusicController
 
     private lateinit var musicControlCardView: CardView
     private lateinit var musicControlLinearLayout: LinearLayout

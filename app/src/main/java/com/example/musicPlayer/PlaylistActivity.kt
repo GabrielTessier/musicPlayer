@@ -3,10 +3,13 @@ package com.example.musicPlayer
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
@@ -19,6 +22,10 @@ class PlaylistActivity : ComponentActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var musicAdapter: MusicAdapter
     private lateinit var items: MutableList<Item>
+
+    private lateinit var musicController: MusicController
+    private lateinit var musicControlCardView: CardView
+    private lateinit var musicControlLinearLayout: LinearLayout
 
     private var isDelete = false
 
@@ -57,10 +64,33 @@ class PlaylistActivity : ComponentActivity() {
         }
         playlist = playlistExtra!!
 
+        musicController = MusicController(this) { onMusicServiceConnect() }
+        musicController.reloadVar()
+        musicControlCardView = findViewById(R.id.musicControlCardView)
+        musicControlLinearLayout = findViewById(R.id.musicButtonLinearLayout)
+        musicControlLinearLayout.setOnClickListener {
+            val intent = Intent(this, MusicActivity::class.java)
+            startActivity(intent)
+        }
+        musicController.update()
+        toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
+
+
         recyclerView = findViewById(R.id.musics)
         recyclerView.layoutManager = LinearLayoutManager(this)
         updateItemList(playlist.audios)
-        musicAdapter = MusicAdapter(this, 0, items) { }
+        musicAdapter = MusicAdapter(this, 0, items) { audioFile ->
+            // Gérer la lecture de l'audio ici
+            if (musicAdapter.getLastSelectedAudioId() != audioFile.id) {
+                //val audioFiles = PlaylistManager.getAudioFiles()
+                val audioFiles = playlist.audios
+                val index = audioFiles.indexOfFirst { it.id == audioFile.id }
+                musicController.playAudio(audioFiles, index)
+                // Mettre à jour l'ID de la musique actuellement jouée
+                musicAdapter.setSelectedAudioId(audioFile.id)
+                toggleCardViewVisibility(true)
+            }
+        }
         recyclerView.adapter = musicAdapter
 
         val btnRetour = findViewById<Button>(R.id.btnRetour)
@@ -82,6 +112,20 @@ class PlaylistActivity : ComponentActivity() {
         btnAddMusic.setOnClickListener {
             openSelectMusicToAddActivity()
         }
+    }
+
+    // Fonction pour afficher ou masquer le CardView
+    private fun toggleCardViewVisibility(show: Boolean) {
+        if (show) {
+            musicControlCardView.visibility = View.VISIBLE  // Afficher le CardView
+        } else {
+            musicControlCardView.visibility = View.GONE  // Masquer le CardView
+        }
+    }
+
+    private fun onMusicServiceConnect() {
+        musicController.update()
+        toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
     }
 
     private fun addItem(audio: AudioFile) {
