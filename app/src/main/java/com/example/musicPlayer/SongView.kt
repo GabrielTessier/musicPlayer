@@ -17,16 +17,16 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     private lateinit var musicControlCardView: CardView
     private lateinit var musicControlLinearLayout: LinearLayout
 
-    private lateinit var items: MutableList<Item>
+    private var items: MutableList<Item> = mutableListOf()
 
     init {
         musicController =
             if (MusicService.isServiceRunning) {
                 MusicController(main) {
-                    main.audioFiles.clear()
+                    /*main.audioFiles.clear()
                     for (audio in musicController.musicService?.audioFiles?: ArrayList()) {
                         main.audioFiles.add(audio)
-                    }
+                    }*/
                     onMusicServiceConnect()
                 }
             } else {
@@ -34,12 +34,13 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
                     onMusicServiceConnect()
                 }
             }
-        updateItemList(main.audioFiles)
+        updateItemList(emptyList())
         musicAdapter = MusicAdapter(main, 1, items) { audioFile ->
             // Gérer la lecture de l'audio ici
             if (musicAdapter.getLastSelectedAudioId() != audioFile.id) {
-                val index = main.audioFiles.indexOfFirst { it.id == audioFile.id }
-                musicController.playAudio(main.audioFiles, index)
+                val audioFiles = PlaylistManager.getAudioFiles()
+                val index = audioFiles.indexOfFirst { it.id == audioFile.id }
+                musicController.playAudio(audioFiles, index)
                 // Mettre à jour l'ID de la musique actuellement jouée
                 musicAdapter.setSelectedAudioId(audioFile.id)
                 toggleCardViewVisibility(true)
@@ -79,7 +80,6 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
         musicControlLinearLayout = main.findViewById(R.id.musicButtonLinearLayout)
         musicControlLinearLayout.setOnClickListener {
             val intent = Intent(main, MusicActivity::class.java)
-            intent.putParcelableArrayListExtra("audioFiles", main.audioFiles)
             main.startActivity(intent)
         }
 
@@ -111,26 +111,19 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
         toggleCardViewVisibility(musicController.musicService?.mediaPlayer?.isPlaying?:false)
         if (musicController.musicService?.mediaPlayer?.isPlaying == true) {
             val index = musicController.musicService?.currentAudioIndex?:0
-            musicAdapter.setSelectedAudioId(main.audioFiles[index].id)
+            musicAdapter.setSelectedAudioId(PlaylistManager.getAudioFiles()[index].id)
         }
     }
 
-    override fun onUpdateAddSong(position: Int) {
-        val audio = main.audioFiles[position]
+    override fun onUpdateAddSong(audio: AudioFile, position: Int) {
         val item = Utils.audioFileToItem(audio)
         items.add(position, item)
+        musicAdapter.notifyItemChanged(position)
+        musicAdapter.notifyItemInserted(position+1)
 
-        musicAdapter.notifyItemInserted(position)
         recyclerView.post {
             recyclerView.invalidateItemDecorations()
         }
-    }
-
-    override fun onUpdateAudioFiles() {
-        /*if (musicAdapter.lastSelectedAudioId != null) {
-            val index = main.audioFiles.indexOfFirst { it.id == musicAdapter.lastSelectedAudioId }
-            musicAdapter.setSelectedAudioId(musicAdapter.lastSelectedAudioId?:0, index)
-        }*/
     }
 
     override fun onDestroy() {

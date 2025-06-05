@@ -33,7 +33,7 @@ class PlaylistActivity : ComponentActivity() {
                         playlistManager.addAudioToPlaylist(playlist.id, audio)
                         addItem(audio)
                     }
-                    playlist = playlistManager.getPlaylistById(playlistId = playlist.id)!!
+                    playlist = PlaylistManager.getPlaylistById(playlistId = playlist.id)!!
                     updateNbElem()
                 }
             }

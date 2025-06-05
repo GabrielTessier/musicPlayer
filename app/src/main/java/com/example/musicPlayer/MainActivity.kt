@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import java.util.ArrayList
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.provider.MediaStore
@@ -16,20 +15,24 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import android.content.res.ColorStateList
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     companion object {
         const val SONG_VIEW = 0
         const val PLAYLIST_VIEW = 1
-
-        var main: MainActivity? = null
     }
-
-    var audioFiles : ArrayList<AudioFile> = ArrayList()
 
     private var view: Int = SONG_VIEW
     private lateinit var songView: SongView
     private lateinit var playlistView: PlaylistView
+
+    private lateinit var playlistManager: PlaylistManager
+
+    private var isReadPermissionGranted = false
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -49,18 +52,30 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (main == null) main = this
-        else finish()
-
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("ACTION_FROM_SERVICE"))
 
         songView = SongView(this)
         playlistView = PlaylistView(this)
 
         changeView(SONG_VIEW)
-        checkPermission()
 
-        songView.updateItemList(audioFiles)
+        playlistManager = PlaylistManager(this) {
+            checkPermission()
+            if (isReadPermissionGranted) {
+                val audioFiles = mutableListOf<AudioFile>()
+                updateAudioFiles(audioFiles) { audioFile ->
+                    val position = audioFiles.size
+                    audioFiles.add(audioFile)
+                    songView.onUpdateAddSong(audioFile, position)
+                    playlistView.onUpdateAddSong(audioFile, position)
+                }
+                CoroutineScope(Dispatchers.IO).launch {
+                    val pm = PlaylistManager(this@MainActivity) {}
+                    delay(200)
+                    pm.syncAudioFiles(audioFiles)
+                }
+            }
+        }
     }
 
     private fun changeView(view: Int) {
@@ -105,12 +120,7 @@ class MainActivity : ComponentActivity() {
     ) { isGranted ->
         if (isGranted) {
             // Permission accordée
-            updateAudioFiles { audioFile ->
-                val position = audioFiles.size
-                audioFiles.add(audioFile)
-                songView.onUpdateAddSong(position)
-                playlistView.onUpdateAddSong(position)
-            }
+            isReadPermissionGranted = true
         } else {
             // Permission refusée
             Toast.makeText(
@@ -125,12 +135,7 @@ class MainActivity : ComponentActivity() {
         when {
             ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED -> {
                 // Permission déjà accordée
-                updateAudioFiles { audioFile ->
-                    val position = audioFiles.size
-                    audioFiles.add(audioFile)
-                    songView.onUpdateAddSong(position)
-                    playlistView.onUpdateAddSong(position)
-                }
+                isReadPermissionGranted = true
             }
             shouldShowRequestPermissionRationale(Manifest.permission.READ_MEDIA_AUDIO) -> {
                 // Expliquer à l'utilisateur pourquoi l'application a besoin de la permission
@@ -147,15 +152,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun updateAudioFiles(onFileScanned: (AudioFile) -> Unit) {
-        clearAudioFiles()
-        getAllAudioFiles(onFileScanned)
-        songView.onUpdateAudioFiles()
-        playlistView.onUpdateAudioFiles()
-    }
-
-    private fun clearAudioFiles() {
+    private fun updateAudioFiles(audioFiles: MutableList<AudioFile>,onFileScanned: (AudioFile) -> Unit) {
         audioFiles.clear()
+        getAllAudioFiles(onFileScanned)
+        //songView.onUpdateAudioFiles()
+        //playlistView.onUpdateAudioFiles()
     }
 
     private fun getAllAudioFiles(onFileScanned: (AudioFile) -> Unit) {

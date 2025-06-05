@@ -29,7 +29,7 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
             val data: Intent? = result.data
             if (data != null) {
                 val id: Long = data.getLongExtra("id", 0)
-                val index = playlistManager.getPlaylists().indexOfFirst { it.id == id }
+                val index = PlaylistManager.getPlaylists().indexOfFirst { it.id == id }
                 val delete: Boolean = data.getBooleanExtra("delete", false)
                 if (delete) {
                     playlistManager.deletePlaylistById(id)
@@ -50,7 +50,8 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
     }
 
     init {
-        playlistManager = PlaylistManager(main) { playlists ->
+        playlistManager = PlaylistManager(main) {
+            val playlists = PlaylistManager.getPlaylists()
             updateItemList(playlists)
             playlistAdapter = PlaylistAdapter(items) { playlistItem ->
                 val index = playlists.indexOfFirst { it.id == playlistItem.id }
@@ -64,7 +65,7 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
     }
 
     private fun updateItem(index: Int) {
-        val playlist = playlistManager.getPlaylistById(items[index].id)!!
+        val playlist = PlaylistManager.getPlaylistById(items[index].id)!!
         items[index] = PlaylistItem.RealItem(
             id = playlist.id,
             name = playlist.name,
@@ -119,17 +120,13 @@ class PlaylistView(private val main: MainActivity): com.example.musicPlayer.View
         buttonPlus.setOnClickListener {
             val playlist = playlistManager.createPlaylist("Test ${items.size}")
             addItemList(playlist)
-            val pos = playlistManager.getPlaylists().size-1
+            val pos = PlaylistManager.getPlaylists().size-1
             playlistAdapter.notifyItemChanged(pos)
             playlistAdapter.notifyItemInserted(pos+1)
         }
     }
 
-    override fun onUpdateAddSong(position: Int) {
-        //TODO("Not yet implemented")
-    }
-
-    override fun onUpdateAudioFiles() {
+    override fun onUpdateAddSong(audio: AudioFile, position: Int) {
         //TODO("Not yet implemented")
     }
 }

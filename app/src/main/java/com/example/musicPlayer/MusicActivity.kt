@@ -23,7 +23,10 @@ class MusicActivity : ComponentActivity() {
 
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("ACTION_FROM_SERVICE"))
 
-        audioFiles = intent.getParcelableArrayListExtra("audioFiles", AudioFile::class.java) ?: arrayListOf()
+        //audioFiles = intent.getParcelableArrayListExtra("audioFiles", AudioFile::class.java) ?: arrayListOf()
+        val audioFilesMutList = PlaylistManager.getAudioFiles()
+        audioFiles = arrayListOf()
+        audioFilesMutList.forEach { audioFiles.add(it) }
 
         updateMusicController()
 

@@ -102,11 +102,26 @@ abstract class AppDatabase : RoomDatabase() {
     }
 }
 
-class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<Playlist>) -> Unit) {
+class PlaylistManager(private val context: Context, onLoadFinish: () -> Unit) {
 
     companion object {
         private val playlists = mutableListOf<Playlist>()
+        private val audioFiles = mutableListOf<AudioFile>()
         private var firstLoad = true
+
+        fun getPlaylists(): MutableList<Playlist> {
+            return playlists
+        }
+        fun getPlaylistById(playlistId: Long): Playlist? {
+            return playlists.find { it.id == playlistId }
+        }
+
+        fun getAudioFiles(): MutableList<AudioFile> {
+            return audioFiles
+        }
+        fun getAudioFilesById(audoId: Long): AudioFile? {
+            return audioFiles.find { it.id ==  audoId }
+        }
     }
 
     private var loadFinish = false
@@ -117,6 +132,7 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
             firstLoad = false
             val db = AppDatabase.getDatabase(context)
             val playlistDao = db.playlistDao()
+            val audioDao = db.audioDao()
             val scope = CoroutineScope(Dispatchers.IO)
             val job = scope.launch {
                 val playlistsEntity = playlistDao.getAllPlaylists()
@@ -129,22 +145,19 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
                         )
                     )
                 }
+                val audioListEntity = audioDao.getAllAudios()
+                audioListEntity.forEach { audio ->
+                    audioFiles.add(audioEntityToAudioFile(audio))
+                }
             }
             job.invokeOnCompletion {
                 loadFinish = true
-                onLoadFinish(playlists)
+                onLoadFinish()
             }
         } else {
             loadFinish = true
-            onLoadFinish(playlists)
+            onLoadFinish()
         }
-    }
-
-    fun getPlaylists(): MutableList<Playlist> {
-        return playlists
-    }
-    fun getPlaylistById(playlistId: Long): Playlist? {
-        return playlists.find { it.id == playlistId }
     }
 
     private suspend fun getAudiosListById(audiosId: List<Long>): MutableList<AudioFile> {
@@ -223,6 +236,10 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
         }
     }
 
+    suspend fun addAudio(audio: AudioFile) {
+        addAudio(audioFileToAudioEntity(audio))
+    }
+
     fun addAudioToPlaylist(playlistId: Long, audio: AudioFile) {
         val playlist = playlists.find { it.id == playlistId }
         playlist?.audios?.add(audio)
@@ -243,6 +260,42 @@ class PlaylistManager(private val context: Context, onLoadFinish: (MutableList<P
                 )
                 playlistDao.update(playlistEntity)
             }
+        }
+    }
+
+    suspend fun syncAudioFiles(audioFilesDisk: List<AudioFile>) {
+        val db = AppDatabase.getDatabase(context)
+        val audioDao = db.audioDao()
+
+        val audioFilesDiskSort = audioFilesDisk.sortedBy { it.id }
+        val audioFilesDbSort = getAudioFiles().sortedBy { it.id }
+        var dbI = 0
+        var diskI = 0
+        while (dbI < audioFilesDbSort.size && diskI < audioFilesDiskSort.size) {
+            if (audioFilesDbSort[dbI].id < audioFilesDiskSort[diskI].id) {
+                audioDao.deleteById(audioFilesDbSort[dbI].id)
+                val index = audioFiles.indexOfFirst { it.id == audioFilesDbSort[dbI].id }
+                audioFiles.removeAt(index)
+                dbI++
+            } else if (audioFilesDbSort[dbI].id > audioFilesDiskSort[diskI].id) {
+                audioDao.insert(audioFileToAudioEntity(audioFilesDiskSort[diskI]))
+                audioFiles.add(audioFilesDiskSort[diskI])
+                diskI++
+            } else {
+                dbI++
+                diskI++
+            }
+        }
+        while (dbI < audioFilesDbSort.size) {
+            audioDao.deleteById(audioFilesDbSort[dbI].id)
+            val index = audioFiles.indexOfFirst { it.id == audioFilesDbSort[dbI].id }
+            audioFiles.removeAt(index)
+            dbI++
+        }
+        while (diskI < audioFilesDiskSort.size) {
+            audioDao.insert(audioFileToAudioEntity(audioFilesDiskSort[diskI]))
+            audioFiles.add(audioFilesDiskSort[diskI])
+            diskI++
         }
     }
 }

@@ -28,7 +28,7 @@ class SelectMusicActivity : ComponentActivity() {
 
         recyclerView = findViewById(R.id.musics)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        updateItemList(MainActivity.main?.audioFiles?: emptyList())
+        updateItemList(PlaylistManager.getAudioFiles())
         musicAdapter = MusicAdapter(this, items.size, items) { audioItem ->
             val index = audioListSelect.indexOfFirst { it.id == audioItem.id }
             if (index == -1) {
