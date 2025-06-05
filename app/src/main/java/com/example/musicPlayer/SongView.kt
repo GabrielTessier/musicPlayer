@@ -1,11 +1,15 @@
 package com.example.musicPlayer
 
+import android.annotation.SuppressLint
 import android.content.Intent
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlin.math.abs
 
 class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     private lateinit var recyclerView: RecyclerView
@@ -77,10 +81,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
 
         musicControlCardView = main.findViewById(R.id.musicControlCardView)
         musicControlLinearLayout = main.findViewById(R.id.musicButtonLinearLayout)
-        musicControlLinearLayout.setOnClickListener {
-            val intent = Intent(main, MusicActivity::class.java)
-            main.startActivity(intent)
-        }
+        setupCardMusicControl()
 
         recyclerView.adapter = musicAdapter
 
@@ -128,4 +129,82 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     override fun onDestroy() {
         musicController.onStop()
     }
+
+    private fun setupCardMusicControl() {
+        val gestureDetector = GestureDetector(main, object : GestureDetector.SimpleOnGestureListener() {
+            private val SWIPE_THRESHOLD = 100
+            private val SWIPE_VELOCITY_THRESHOLD = 100
+
+            override fun onFling(
+                e1: MotionEvent?, e2: MotionEvent,
+                velocityX: Float, velocityY: Float
+            ): Boolean {
+                if (e1 == null) return false
+                val diffX = e2.x - e1.x
+                if (abs(diffX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    // Swipe horizontal détecté
+                    musicControlCardView.animate()
+                        .translationX(if (diffX > 0) 1000f else -1000f)
+                        .alpha(0f)
+                        .setDuration(300)
+                        .withEndAction {
+                            musicControlCardView.visibility = View.GONE
+                        }
+                        .start()
+                    musicController.pauseMusic()
+                    return true
+                }
+                return false
+            }
+
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                val intent = Intent(main, MusicActivity::class.java)
+                main.startActivity(intent)
+                return true
+            }
+        })
+
+        musicControlLinearLayout.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
+    }
 }
+
+/*
+class Test: GestureDetector.OnGestureListener {
+    override fun onDown(e: MotionEvent): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun onShowPress(e: MotionEvent) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onSingleTapUp(e: MotionEvent): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun onScroll(
+        e1: MotionEvent?,
+        e2: MotionEvent,
+        distanceX: Float,
+        distanceY: Float
+    ): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun onLongPress(e: MotionEvent) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onFling(
+        e1: MotionEvent?,
+        e2: MotionEvent,
+        velocityX: Float,
+        velocityY: Float
+    ): Boolean {
+        TODO("Not yet implemented")
+    }
+
+}*/

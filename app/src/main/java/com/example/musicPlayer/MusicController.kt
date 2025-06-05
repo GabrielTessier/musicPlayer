@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
+import android.util.Log
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
@@ -156,7 +157,7 @@ class MusicController (private var activity: ComponentActivity, private val onMu
         update()
     }
 
-    private fun pauseMusic() {
+    fun pauseMusic() {
         musicService?.pauseMusic()
         update()
     }
