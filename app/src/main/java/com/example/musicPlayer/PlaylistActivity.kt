@@ -21,7 +21,6 @@ class PlaylistActivity : ComponentActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var musicAdapter: MusicAdapter
-    private lateinit var items: MutableList<Item>
 
     private lateinit var musicController: MusicController
     private lateinit var musicControlCardView: CardView
@@ -36,12 +35,10 @@ class PlaylistActivity : ComponentActivity() {
                 val validate: Boolean = data.getBooleanExtra("validate", false)
                 if (validate) {
                     val audioList: ArrayList<AudioFile> = data.getParcelableArrayListExtra("audioList", AudioFile::class.java)?: arrayListOf()
-                    for (audio in audioList) {
-                        playlistManager.addAudioToPlaylist(playlist.id, audio)
-                        addItem(audio)
-                    }
+                    playlistManager.addAudioListToPlaylist(playlist.id, audioList) {}
                     playlist = PlaylistManager.getPlaylistById(playlistId = playlist.id)!!
                     updateNbElem()
+                    updateItemList(playlist.audios)
                 }
             }
         }
@@ -78,8 +75,7 @@ class PlaylistActivity : ComponentActivity() {
 
         recyclerView = findViewById(R.id.musics)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        updateItemList(playlist.audios)
-        musicAdapter = MusicAdapter(this, 0, items) { audioFile ->
+        musicAdapter = MusicAdapter(this, 0, arrayListOf()) { audioFile ->
             // Gérer la lecture de l'audio ici
             if (musicAdapter.getLastSelectedAudioId() != audioFile.id) {
                 //val audioFiles = PlaylistManager.getAudioFiles()
@@ -91,6 +87,7 @@ class PlaylistActivity : ComponentActivity() {
                 toggleCardViewVisibility(true)
             }
         }
+        updateItemList(playlist.audios)
         recyclerView.adapter = musicAdapter
 
         val btnRetour = findViewById<Button>(R.id.btnRetour)
@@ -129,18 +126,13 @@ class PlaylistActivity : ComponentActivity() {
     }
 
     private fun addItem(audio: AudioFile) {
-        val pos = items.size-1
-        items.add(pos, Utils.audioFileToItem(audio))
-        musicAdapter.notifyItemInserted(pos)
+        val pos = musicAdapter.getItems().size-1
+        musicAdapter.addItemLast(Utils.audioFileToItem(audio))
     }
     private fun updateItemList(audioFiles: List<AudioFile>) {
-        items = MutableList(audioFiles.size+1) { index: Int ->
-            if (index != audioFiles.size) {
-                val audio = audioFiles[index]
-                Utils.audioFileToItem(audio)
-            } else {
-                Item.FakeItem(-1)
-            }
+        musicAdapter.clearItems()
+        for (audio in audioFiles) {
+            musicAdapter.addItemLast(Utils.audioFileToItem(audio))
         }
     }
 

@@ -148,4 +148,19 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
     fun hideMenuButton() {
         isMenuButtonHide = true
     }
+
+    fun getItems(): MutableList<Item> {
+        return items
+    }
+
+    fun clearItems() {
+        items.clear()
+        items.add(Item.FakeItem(-1))
+    }
+
+    fun addItemLast(item: Item) {
+        val pos = items.size-1
+        items.add(pos, item)
+        notifyItemInserted(pos)
+    }
 }

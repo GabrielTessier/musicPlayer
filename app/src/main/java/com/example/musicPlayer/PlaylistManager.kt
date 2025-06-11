@@ -119,8 +119,8 @@ class PlaylistManager(private val context: Context, onLoadFinish: () -> Unit) {
         fun getAudioFiles(): MutableList<AudioFile> {
             return audioFiles
         }
-        fun getAudioFilesById(audoId: Long): AudioFile? {
-            return audioFiles.find { it.id ==  audoId }
+        fun getAudioFileById(audioId: Long): AudioFile? {
+            return audioFiles.find { it.id ==  audioId }
         }
     }
 
@@ -240,7 +240,7 @@ class PlaylistManager(private val context: Context, onLoadFinish: () -> Unit) {
         addAudio(audioFileToAudioEntity(audio))
     }
 
-    fun addAudioToPlaylist(playlistId: Long, audio: AudioFile) {
+    fun addAudioToPlaylist(playlistId: Long, audio: AudioFile, onFinish: () -> Unit) {
         val playlist = playlists.find { it.id == playlistId }
         playlist?.audios?.add(audio)
 
@@ -260,6 +260,32 @@ class PlaylistManager(private val context: Context, onLoadFinish: () -> Unit) {
                 )
                 playlistDao.update(playlistEntity)
             }
+            onFinish()
+        }
+    }
+
+    fun addAudioListToPlaylist(playlistId: Long, audioList: List<AudioFile>, onFinish: () -> Unit) {
+        val playlist = playlists.find { it.id == playlistId }
+        for (audio in audioList) playlist?.audios?.add(audio)
+
+        val db = AppDatabase.getDatabase(context)
+        val playlistDao = db.playlistDao()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            // Insérer la piste audio
+            for (audio in audioList) {
+                addAudio(audioFileToAudioEntity(audio))
+            }
+            // Mettre à jour la playlist
+            playlist?.let { pl ->
+                val playlistEntity = PlaylistEntity(
+                    id = pl.id,
+                    name = pl.name,
+                    audiosId = pl.audios.map { it.id }
+                )
+                playlistDao.update(playlistEntity)
+            }
+            onFinish()
         }
     }
 
