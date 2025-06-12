@@ -18,10 +18,21 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import android.content.res.ColorStateList
+import android.media.AudioManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+class AudioOutputChangeReceiver(private val onAudioDeviceChanged: (isHeadsetOn: Boolean) -> Unit) : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+            // La sortie audio a changé, par exemple, un casque a été débranché
+            onAudioDeviceChanged(false)
+        }
+    }
+}
 
 class MainActivity : ComponentActivity(), MusicListInterface {
     companion object {
@@ -36,6 +47,8 @@ class MainActivity : ComponentActivity(), MusicListInterface {
     private lateinit var playlistManager: PlaylistManager
 
     private var isReadPermissionGranted = false
+
+    private lateinit var audioOutputChangeReceiver: AudioOutputChangeReceiver
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -61,6 +74,12 @@ class MainActivity : ComponentActivity(), MusicListInterface {
         playlistView = PlaylistView(this)
 
         changeView(SONG_VIEW)
+
+        audioOutputChangeReceiver = AudioOutputChangeReceiver { isHeadsetOn ->
+            songView.musicController.pauseMusic()
+        }
+        val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+        registerReceiver(audioOutputChangeReceiver, intentFilter)
 
         playlistManager = PlaylistManager(this) {
             checkPermission()

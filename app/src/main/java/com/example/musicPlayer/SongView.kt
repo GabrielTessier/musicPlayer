@@ -15,7 +15,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
     private lateinit var recyclerView: RecyclerView
     private var scrollY: Int = 0
     lateinit var musicAdapter: MusicAdapter
-    private var musicController: MusicController
+    var musicController: MusicController
 
     private lateinit var musicControlCardView: CardView
     private lateinit var musicControlLinearLayout: LinearLayout
