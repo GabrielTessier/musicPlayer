@@ -15,11 +15,21 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 class MusicActivity : ComponentActivity() {
     private var musicController: MusicController? = null
 
+    private var bindToMusicPlaying: Boolean = true
+    private var audio: AudioFile? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_music_desc)
 
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("ACTION_FROM_SERVICE"))
+
+        val audioExtra = intent.getParcelableExtra("audio", AudioFile::class.java)
+        if (audioExtra != null) {
+            bindToMusicPlaying = false
+            audio = audioExtra
+            setViewContent(audio!!)
+        }
 
         updateMusicController()
 
@@ -35,20 +45,26 @@ class MusicActivity : ComponentActivity() {
     fun updateMusicController() {
         musicController?.onStop()
         musicController = MusicController(this) {
-            musicController?.musicService?.let { service ->
-                val audio = service.audioFiles[service.currentAudioIndex]
-                val textTitle = findViewById<TextView>(R.id.title)
-                textTitle.text = audio.title
-                val textArtist = findViewById<TextView>(R.id.artist)
-                textArtist.text = audio.artist
-                val textDuration = findViewById<TextView>(R.id.duration)
-                textDuration.text = Utils.formatTime(audio.duration)
-
-                val imageView = findViewById<ImageView>(R.id.image)
-                Utils.loadAlbumArt(this, audio.albumArtUri, imageView, R.drawable.music_disk)
+            if (bindToMusicPlaying) {
+                musicController?.musicService?.let { service ->
+                    val audio = service.audioFiles[service.currentAudioIndex]
+                    setViewContent(audio)
+                }
             }
         }
         musicController?.update()
+    }
+
+    private fun setViewContent(audio: AudioFile) {
+        val textTitle = findViewById<TextView>(R.id.title)
+        textTitle.text = audio.title
+        val textArtist = findViewById<TextView>(R.id.artist)
+        textArtist.text = audio.artist
+        val textDuration = findViewById<TextView>(R.id.duration)
+        textDuration.text = Utils.formatTime(audio.duration)
+
+        val imageView = findViewById<ImageView>(R.id.image)
+        Utils.loadAlbumArt(this, audio.albumArtUri, imageView, R.drawable.music_disk)
     }
 
     private val receiver = object : BroadcastReceiver() {

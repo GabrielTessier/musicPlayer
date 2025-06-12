@@ -22,14 +22,14 @@ class SelectMusicActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.select_music_layout)
+        setContentView(R.layout.select_layout)
 
         playlistManager = PlaylistManager(this) {}
 
         recyclerView = findViewById(R.id.musics)
         recyclerView.layoutManager = LinearLayoutManager(this)
         updateItemList(PlaylistManager.getAudioFiles())
-        musicAdapter = MusicAdapter(this, items.size, items) { audioItem ->
+        musicAdapter = MusicAdapter(this, null, items.size, items) { audioItem ->
             val index = audioListSelect.indexOfFirst { it.id == audioItem.id }
             if (index == -1) {
                 audioListSelect.add(Utils.itemToAudioFile(audioItem))

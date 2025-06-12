@@ -3,12 +3,13 @@ package com.example.musicPlayer
 import android.app.Activity
 import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 
 sealed class Item (open val id: Long) {
@@ -26,7 +27,7 @@ sealed class Item (open val id: Long) {
     ) : Item(id)
 }
 
-class MusicAdapter(private val activity: Activity, private val maxSelected: Int, private val items: MutableList<Item>, private val onItemClick: (Item.RealItem) -> Unit) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class MusicAdapter(private val activity: Activity, private val menuRes: Int?, private val maxSelected: Int, private val items: MutableList<Item>, private val onItemClick: (Item.RealItem) -> Unit) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var selectedAudioIdList: ArrayList<Long> = arrayListOf()
     private var lastSelectedAudioId: Long? = null
@@ -46,8 +47,9 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
         private val artist: TextView = itemView.findViewById(R.id.artist)
         private val duration: TextView = itemView.findViewById(R.id.duration)
         private val image: ImageView = itemView.findViewById(R.id.albumImage)
+        private val menuButton: ImageView = itemView.findViewById(R.id.menuButton)
 
-        fun bind(item: Item.RealItem, musicAdapter: MusicAdapter) {
+        fun bind(item: Item.RealItem, position: Int, musicAdapter: MusicAdapter) {
             title.text = item.title
             artist.text = item.artist
             duration.text = Utils.formatDuration(item.duration)
@@ -70,10 +72,14 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
             itemView.setOnClickListener {
                 musicAdapter.onItemClick(item)
             }
+
+            menuButton.setOnClickListener { view ->
+                musicAdapter.showPopupMenu(view, position)
+            }
         }
     }
     class FakeItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        fun bind(item: Item.FakeItem, musicAdapter: MusicAdapter) {}
+        fun bind(item: Item.FakeItem, position: Int, musicAdapter: MusicAdapter) {}
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -99,8 +105,8 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
-            is Item.RealItem -> (holder as MusicViewHolder).bind(item, this@MusicAdapter)
-            is Item.FakeItem -> (holder as FakeItemViewHolder).bind(item, this@MusicAdapter)
+            is Item.RealItem -> (holder as MusicViewHolder).bind(item, position, this@MusicAdapter)
+            is Item.FakeItem -> (holder as FakeItemViewHolder).bind(item, position, this@MusicAdapter)
         }
     }
 
@@ -154,13 +160,50 @@ class MusicAdapter(private val activity: Activity, private val maxSelected: Int,
     }
 
     fun clearItems() {
+        val itemSize = items.size-1
         items.clear()
         items.add(Item.FakeItem(-1))
+        notifyItemRangeRemoved(0, itemSize)
     }
 
     fun addItemLast(item: Item) {
         val pos = items.size-1
         items.add(pos, item)
         notifyItemInserted(pos)
+    }
+
+    fun showPopupMenu(view: View, position: Int) {
+        val item = items[position]
+        if (menuRes != null && item is Item.RealItem) {
+            if (activity is MusicListInterface) {
+                val popupMenu = PopupMenu(view.context, view)
+                val inflater: MenuInflater = popupMenu.menuInflater
+                inflater.inflate(menuRes, popupMenu.menu)
+                val audio = Utils.itemToAudioFile(item)
+                popupMenu.setOnMenuItemClickListener { menuItem ->
+                    when (menuItem.itemId) {
+                        R.id.action_add_to_playlist -> {
+                            activity.onAddToPlaylist(audio)
+                            true
+                        }
+
+                        R.id.action_info_music -> {
+                            activity.onInfoMusic(audio)
+                            true
+                        }
+
+                        R.id.action_remove -> {
+                            activity.onRemoveMusic(audio)
+                            true
+                        }
+
+                        else -> false
+                    }
+                }
+                popupMenu.show()
+            } else {
+                throw IllegalArgumentException("Activity must implement MusicListInterface")
+            }
+        }
     }
 }

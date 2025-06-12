@@ -12,4 +12,7 @@
     <string name="song">Musique</string>
     <string name="playlist">Playlist</string>
     <string name="menu_option">Menu</string>
+    <string name="ajouter_music_playlist">Ajouter à une playlist</string>
+    <string name="info_music">Information sur la musique</string>
+    <string name="retirer_music_playlist">Retirer de la playlist</string>
 </resources>

@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
 
-class PlaylistActivity : ComponentActivity() {
+class PlaylistActivity : ComponentActivity(), MusicListInterface {
 
     private lateinit var playlistManager: PlaylistManager
     private lateinit var playlist: Playlist
@@ -35,13 +35,24 @@ class PlaylistActivity : ComponentActivity() {
                 val validate: Boolean = data.getBooleanExtra("validate", false)
                 if (validate) {
                     val audioList: ArrayList<AudioFile> = data.getParcelableArrayListExtra("audioList", AudioFile::class.java)?: arrayListOf()
-                    playlistManager.addAudioListToPlaylist(playlist.id, audioList) {}
-                    playlist = PlaylistManager.getPlaylistById(playlistId = playlist.id)!!
-                    updateNbElem()
-                    updateItemList(playlist.audios)
+                    addAudioList(audioList)
                 }
             }
         }
+    }
+
+    private fun addAudioList(audioList: ArrayList<AudioFile>) {
+        playlistManager.addAudioListToPlaylist(playlist.id, audioList) {}
+        playlist = PlaylistManager.getPlaylistById(playlistId = playlist.id)!!
+        updateNbElem()
+        updateItemList(playlist.audios)
+    }
+
+    private fun removeAudio(audio: AudioFile) {
+        playlistManager.removeAudioToPlaylist(playlist.id, audio) {}
+        playlist = PlaylistManager.getPlaylistById(playlist.id)!!
+        updateNbElem()
+        updateItemList(playlist.audios)
     }
 
     private fun openSelectMusicToAddActivity() {
@@ -75,7 +86,7 @@ class PlaylistActivity : ComponentActivity() {
 
         recyclerView = findViewById(R.id.musics)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        musicAdapter = MusicAdapter(this, 0, arrayListOf()) { audioFile ->
+        musicAdapter = MusicAdapter(this, R.menu.overflow_menu_music_in_playlist, 1, arrayListOf()) { audioFile ->
             // Gérer la lecture de l'audio ici
             if (musicAdapter.getLastSelectedAudioId() != audioFile.id) {
                 //val audioFiles = PlaylistManager.getAudioFiles()
@@ -126,7 +137,6 @@ class PlaylistActivity : ComponentActivity() {
     }
 
     private fun addItem(audio: AudioFile) {
-        val pos = musicAdapter.getItems().size-1
         musicAdapter.addItemLast(Utils.audioFileToItem(audio))
     }
     private fun updateItemList(audioFiles: List<AudioFile>) {
@@ -147,6 +157,44 @@ class PlaylistActivity : ComponentActivity() {
             putExtra("id", playlist.id)
         })
         super.finish()
+    }
+
+    private val resultLauncherAddMusicSelectPlaylist = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            if (data != null) {
+                val validate: Boolean = data.getBooleanExtra("validate", false)
+                if (validate) {
+                    val playlistList: ArrayList<Playlist> = data.getParcelableArrayListExtra("playlistList", Playlist::class.java)?: arrayListOf()
+                    val audio: AudioFile? = data.getParcelableExtra("audio", AudioFile::class.java)
+                    if (audio != null) {
+                        for (playlist in playlistList) {
+                            playlistManager.addAudioToPlaylist(playlist.id, audio) {}
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun openAddMusicSelectPlaylistActivity(audioFile: AudioFile) {
+        val intent = Intent(this, SelectPlaylistActivity::class.java)
+        intent.putExtra("audio", audioFile)
+        resultLauncherAddMusicSelectPlaylist.launch(intent)
+    }
+
+    override fun onInfoMusic(audioFile: AudioFile) {
+        val intent = Intent(this, MusicActivity::class.java)
+        intent.putExtra("audio", audioFile)
+        startActivity(intent)
+    }
+
+    override fun onAddToPlaylist(audioFile: AudioFile) {
+        openAddMusicSelectPlaylistActivity(audioFile)
+    }
+
+    override fun onRemoveMusic(audioFile: AudioFile) {
+        removeAudio(audioFile)
     }
 
     /*override fun onDestroy() {

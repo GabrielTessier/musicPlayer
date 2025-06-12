@@ -3,6 +3,7 @@ package com.example.musicPlayer
 //import androidx.appcompat.app.AppCompatActivity
 
 import android.Manifest
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -22,7 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), MusicListInterface {
     companion object {
         const val SONG_VIEW = 0
         const val PLAYLIST_VIEW = 1
@@ -210,6 +211,40 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private val resultLauncherAddMusicSelectPlaylist = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            if (data != null) {
+                val validate: Boolean = data.getBooleanExtra("validate", false)
+                if (validate) {
+                    val playlistList: ArrayList<Playlist> = data.getParcelableArrayListExtra("playlistList", Playlist::class.java)?: arrayListOf()
+                    val audio: AudioFile? = data.getParcelableExtra("audio", AudioFile::class.java)
+                    if (audio != null) {
+                        for (playlist in playlistList) {
+                            playlistManager.addAudioToPlaylist(playlist.id, audio) {}
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun openAddMusicSelectPlaylistActivity(audioFile: AudioFile) {
+        val intent = Intent(this, SelectPlaylistActivity::class.java)
+        intent.putExtra("audio", audioFile)
+        resultLauncherAddMusicSelectPlaylist.launch(intent)
+    }
+
+    override fun onInfoMusic(audioFile: AudioFile) {
+        val intent = Intent(this, MusicActivity::class.java)
+        intent.putExtra("audio", audioFile)
+        startActivity(intent)
+    }
+
+    override fun onAddToPlaylist(audioFile: AudioFile) {
+        openAddMusicSelectPlaylistActivity(audioFile)
     }
 
     override fun onDestroy() {

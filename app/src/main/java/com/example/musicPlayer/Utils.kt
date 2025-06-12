@@ -65,4 +65,19 @@ object Utils {
             data = audioFile.data
         )
     }
+
+    fun itemToPlaylist(item: PlaylistItem.RealItem): Playlist {
+        return Playlist(
+            id = item.id,
+            name = item.name,
+            audios = item.audios
+        )
+    }
+    fun playlistToItem(playlist: Playlist): PlaylistItem.RealItem {
+        return PlaylistItem.RealItem(
+            id = playlist.id,
+            name = playlist.name,
+            audios = playlist.audios
+        )
+    }
 }

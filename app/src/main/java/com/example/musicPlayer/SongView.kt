@@ -38,7 +38,7 @@ class SongView(private val main: MainActivity): com.example.musicPlayer.View {
                 }
             }
         updateItemList(emptyList())
-        musicAdapter = MusicAdapter(main, 1, items) { audioFile ->
+        musicAdapter = MusicAdapter(main, R.menu.overflow_menu_music, 1, items) { audioFile ->
             // Gérer la lecture de l'audio ici
             if (musicAdapter.getLastSelectedAudioId() != audioFile.id) {
                 val audioFiles = PlaylistManager.getAudioFiles()
