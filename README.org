@@ -1,0 +1,20 @@
+#+title: Un lecteur de musique pour android
+
+Ouvrir android studio
+
+Attendre la fin de l'importation (peu être long la première fois ~ 7min)
+
+* Comment installé
+** Pour l'utilisé dans une vm android :
+- Appuié sur run (le triangle vert en haut)
+- Attendre (peu être long la première fois ~ 1.5 min)
+
+** Pour l'installer sur sont téléphone :
+- Connecter son téléphone via usb (avec le débogage USB)
+- Dans android studio, ouvrir 'running devices' sur la gauche
+- Clic sur + et choisir le téléphone
+- Appuié sur run (le triangle vert en haut)
+- Attendre (peu être long la première fois ~ 1.5 min)
+
+** Dans les deux cas
+Il faut autoriser l'application à accéder aux fichiers audio
