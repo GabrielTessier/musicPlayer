@@ -11,8 +11,9 @@ Attendre la fin de l'importation (peu être long la première fois ~ 7min)
 
 ** Pour l'installer sur sont téléphone :
 - Connecter son téléphone via usb (avec le débogage USB)
-- Dans android studio, ouvrir 'running devices' sur la gauche
+- Dans android studio, ouvrir 'Running Devices' (sur la gauche)
 - Clic sur + et choisir le téléphone
+- Choisir son téléphone dans 'Devices Manager' (sur la gauche)
 - Appuié sur run (le triangle vert en haut)
 - Attendre (peu être long la première fois ~ 1.5 min)
 
